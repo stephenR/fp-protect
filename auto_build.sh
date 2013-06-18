@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o verbose
+
 setup_env () {
 	echo "[*] Setting up environment"
 	export LFS=/home/tsuro/workspace/msc/opt

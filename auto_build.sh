@@ -197,7 +197,7 @@ build_libc_pass_1 () {
 	echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../glibc/configure --prefix=/tools --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=/tools/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS=-O1 -ggdb -ffp-protect LDFLAGS=-ggdb  || exit 1
+	../glibc/configure --prefix=/tools --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=/tools/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O1 -ggdb -ffp-protect" LDFLAGS="-ggdb"  || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -223,9 +223,9 @@ build_libc_pass_1 () {
 
 setup_env
 setup_dirs
-build_binutils
-build_gcc_pass1
-install_linux_headers
+#build_binutils
+#build_gcc_pass1
+#install_linux_headers
 build_libc_pass_1
 
 #libc configparms

@@ -23,8 +23,8 @@ setup_dirs () {
 	fi
 }
 
-build_binutils () {
-	echo "[*] binutils build process started"
+build_binutils_pass_1 () {
+	echo "[*] binutils pass 1 build process started"
 
 	if [ ! -d binutils-2.23.2 ]; then
 		echo "[*] Downloading binutils"
@@ -51,7 +51,7 @@ build_binutils () {
 	esac
 	echo "[*] Installing"
 	make $MAKEFLAGS install || exit 1
-	echo "[*] binutils build process finished"
+	echo "[*] binutils pass 1 build process finished"
 	cd ..
 
 	if [ ! $DEBUG ]; then
@@ -60,7 +60,55 @@ build_binutils () {
 	fi
 }
 
-build_gcc_pass1 () {
+build_binutils_pass_2 () {
+	echo "[*] binutils pass 2 build process started"
+
+	if [ ! -d binutils-2.23.2 ]; then
+		echo "[*] Downloading binutils"
+		wget http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.gz || exit 1
+		tar -xf binutils-2.23.2.tar.gz || exit 1
+		rm binutils-2.23.2.tar.gz
+	fi
+
+	if [ -d binutils-build ]; then
+		echo "[*] removing binutils build directory"
+		rm -Rf binutils-build
+	fi
+
+	mkdir binutils-build
+	cd binutils-build
+
+	echo "[*] Configuring"
+	../binutils-2.23.2/configure CC="$LFS_TGT-gcc" AR="$LFS_TGT-ar" RANLIB="$LFS_TGT-ranlib" --prefix=/tools --with-lib-path=/tools/lib --disable-nls || exit 1
+
+	echo "[*] Compiling"
+	make $MAKEFLAGS || exit 1
+
+	echo "[*] Installing"
+	make $MAKEFLAGS install || exit 1
+
+	make -C ld clean || exit 1
+	make -C ld LIB_PATH=/usr/lib:/lib || exit 1
+	cp -v ld/ld-new /tools/bin || exit 1
+
+	echo "[*] binutils pass 1 build process finished"
+	cd ..
+
+	if [ ! $DEBUG ]; then
+		echo "[*] removing binutils build directory"
+		rm -Rf binutils-build
+	fi
+}
+
+revert_gcc () {
+	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+	do
+		git checkout $file
+	done
+	git checkout gcc/configure
+}
+
+build_gcc_pass_1 () {
 	echo "[*] gcc pass 1 build process started"
 
 	echo "[*] Checking out / updating fpp gcc"
@@ -72,12 +120,9 @@ build_gcc_pass1 () {
 	fi
 	cd gcc
 
-	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
-	do
-		git checkout $file
-	done
-	git checkout gcc/configure
-	git pull
+	revert_gcc
+
+	git pull origin fpprotect_gimple
 
 	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
 	do
@@ -155,6 +200,107 @@ build_gcc_pass1 () {
 	echo "[*] gcc pass 1 build process finished"
 }
 
+build_gcc_pass_2 () {
+	echo "[*] gcc pass 2 build process started"
+
+	echo "[*] Checking out / updating fpp gcc"
+	if [ ! -d gcc ]; then
+		git clone git@zero-entropy.de:gcc.git gcc || exit 1
+		cd gcc
+		git checkout -b fpprotect origin/fpprotect_gimple
+		cd ..
+	fi
+	cd gcc
+
+	revert_gcc
+
+	git pull origin fpprotect_gimple
+
+	cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/include-fixed/limits.h
+
+	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+	do
+		cp -uv $file{,.orig}
+		sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
+			-e 's@/usr@/tools@g' $file.orig > $file
+		echo '
+#undef STANDARD_STARTFILE_PREFIX_1
+#undef STANDARD_STARTFILE_PREFIX_2
+#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+		touch $file.orig
+	done
+
+	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
+
+	echo "[*] downloading mpfr"
+	wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
+	tar -xf mpfr-3.1.1.tar.xz || exit 1
+	rm mpfr-3.1.1.tar.xz 
+	if [ -d mpfr ]; then
+		rm -Rf mpfr
+	fi
+	mv mpfr-3.1.1 mpfr
+
+	echo "[*] downloading mpc"
+	wget http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz || exit 1
+	tar -xf mpc-1.0.1.tar.gz || exit 1
+	rm mpc-1.0.1.tar.gz
+	if [ -d mpc ]; then
+		rm -Rf mpc
+	fi
+	mv mpc-1.0.1 mpc
+
+	echo "[*] downloading gmp"
+	wget ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz || exit 1
+	tar -xf gmp-5.1.1.tar.xz || exit 1
+	rm gmp-5.1.1.tar.xz
+	if [ -d gmp ]; then
+		rm -Rf gmp
+	fi
+	mv gmp-5.1.1 gmp
+
+	cd ..
+
+	if [ -d gcc-build ]; then
+		echo "[*] removing gcc build directory"
+		rm -Rf gcc-build
+	fi
+
+	mkdir gcc-build
+	cd gcc-build
+
+	echo "[*] Configuring"
+	../configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET='-gdwarf-2 -g3 -O0 -ffp-protect' --prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.lib || exit 1
+
+	echo "[*] Compiling"
+	make $MAKEFLAGS || exit 1
+
+	echo "[*] Installing"
+	make $MAKEFLAGS install || exit 1
+
+	ln -sv gcc /tools/bin/cc
+
+	ln -sv libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
+
+	cd ..
+
+	echo 'main(){}' > dummy.c
+	cc dummy.c || exit 1
+	readelf -l a.out | grep ': /tools' | exit 1
+	rm dummy.c a.out
+
+	if [ ! $DEBUG ]; then
+		echo "[*] removing gcc build directories"
+		rm -Rf gcc-build
+		rm -Rf gcc/mpfr
+		rm -Rf gcc/mpc
+		rm -Rf gcc/gmp
+	fi
+
+	echo "[*] gcc pass 1 build process finished"
+}
+
 install_linux_headers () {
 	echo "[*] installing linux headers"
 	wget http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz || exit 1
@@ -182,7 +328,7 @@ build_libc_pass_1 () {
 	fi
 
 	cd glibc
-	git pull
+	git pull origin fpp
 
 	cd ..
 
@@ -221,12 +367,67 @@ build_libc_pass_1 () {
 	echo "[*] glibc pass 1 build process finished"
 }
 
+build_libc_pass_2 () {
+	echo "[*] libc pass 2 build process started"
+
+	echo "[*] Checking out / updating fpp libc"
+	if [ ! -d glibc ]; then
+		git clone git@zero-entropy.de:glibc.git glibc || exit 1
+		cd glibc
+		git checkout -b fpp origin/fpp
+		cd ..
+	fi
+
+	cd glibc
+	git pull origin fpp
+
+	cd ..
+
+	if [ -d glibc-build ]; then
+		echo "[*] removing glibc build directory"
+		rm -Rf glibc-build
+	fi
+
+	mkdir glibc-build
+	cd glibc-build
+
+	#TODO programs needed?
+	echo "build-programs=no" > configparms
+
+	echo "[*] Configuring"
+	../glibc//configure --prefix=/tools --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=/tools/include CFLAGS="-O1 -ggdb -ffp-protect" LDFLAGS="-ggdb" || exit 1
+
+	echo "[*] Compiling"
+	make $MAKEFLAGS || exit 1
+
+	echo "[*] Installing"
+	make $MAKEFLAGS install || exit 1
+
+	cd ..
+
+	echo "[*] Checking compiler output"
+	echo 'main(){}' > dummy.c
+	cc dummy.c || exit 1
+	readelf -l a.out | grep ': /tools' | exit 1
+	rm dummy.c a.out
+
+	if [ ! $DEBUG ]; then
+		echo "[*] removing libc build directory"
+		rm -Rf glibc-build
+	fi
+
+	echo "[*] glibc pass 2 build process finished"
+}
+
 setup_env
 setup_dirs
-#build_binutils
-#build_gcc_pass1
-#install_linux_headers
+build_binutils_pass_1
+build_gcc_pass_1
+install_linux_headers
 build_libc_pass_1
+#build_binutils_pass_2 #is this needed?
+build_gcc_pass_2
+build_libc_pass_2
 
 #libc configparms
 

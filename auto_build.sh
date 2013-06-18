@@ -392,7 +392,7 @@ build_libc_pass_2 () {
 	cd glibc-build
 
 	#TODO programs needed?
-	echo "build-programs=no" > configparms
+	#echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
 	../glibc//configure --prefix=/tools --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=/tools/include CFLAGS="-O1 -ggdb -ffp-protect" LDFLAGS="-ggdb" || exit 1

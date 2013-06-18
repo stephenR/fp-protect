@@ -155,10 +155,78 @@ build_gcc_pass1 () {
 	echo "[*] gcc pass 1 build process finished"
 }
 
+install_linux_headers () {
+	echo "[*] installing linux headers"
+	wget http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz || exit 1
+	if [ -d linux-3.8.1 ]; then
+		rm -Rf linux-3.8.1
+	fi
+	tar -xf linux-3.8.1.tar.xz || exit 1
+	rm linux-3.8.1.tar.xz
+	cd linux-3.8.1
+	make mrproper || exit 1
+	make headers_check || exit 1
+	make INSTALL_HDR_PATH=dest headers_install
+	cp -rv dest/include/* /tools/include
+}
+
+build_libc_pass_1 () {
+	echo "[*] libc pass 1 build process started"
+
+	echo "[*] Checking out / updating fpp libc"
+	if [ ! -d glibc ]; then
+		git clone git@zero-entropy.de:glibc.git glibc || exit 1
+		cd glibc
+		git checkout -b fpp origin/fpp
+		cd ..
+	fi
+
+	cd glibc
+	git pull
+
+	cd ..
+
+	if [ -d glibc-build ]; then
+		echo "[*] removing glibc build directory"
+		rm -Rf glibc-build
+	fi
+
+	mkdir glibc-build
+	cd glibc-build
+
+	echo "build-programs=no" > configparms
+
+	echo "[*] Configuring"
+	../glibc-build/configure --prefix=/tools --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=/tools/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS=-O1 -ggdb -ffp-protect LDFLAGS=-ggdb 
+
+	echo "[*] Compiling"
+	make $MAKEFLAGS || exit 1
+
+	echo "[*] Installing"
+	make $MAKEFLAGS install || exit 1
+
+	cd ..
+
+	echo "[*] Checking compiler output"
+	echo 'main(){}' > dummy.c
+	$LFS_TGT-gcc dummy.c
+	readelf -l a.out | grep ': /tools' || exit 1
+	rm -v dummy.c a.out
+
+	if [ ! $DEBUG ]; then
+		echo "[*] removing libc build directory"
+		rm -Rf glibc-build
+	fi
+
+	echo "[*] glibc pass 1 build process finished"
+}
+
 setup_env
 setup_dirs
 build_binutils
 build_gcc_pass1
+install_linux_headers
+build_libc_pass_1
 
 #libc configparms
 

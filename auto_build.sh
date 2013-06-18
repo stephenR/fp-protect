@@ -67,7 +67,9 @@ build_gcc_pass1 () {
 		git clone git@zero-entropy.de:gcc.git gcc || exit 1
 		cd gcc
 		git checkout -b fpprotect origin/fpprotect_gimple
+		cd ..
 	fi
+	cd gcc
 
 	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
 	do

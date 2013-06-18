@@ -134,7 +134,7 @@ build_gcc_pass1 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../gcc/configure --target=$LFS_TGT --prefix=/tools --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/../gcc/mpfr/src/.libs --disable-libatomic || exit 1
+	../gcc/configure --target=$LFS_TGT --prefix=/tools --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
 

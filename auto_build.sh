@@ -15,10 +15,9 @@ setup_env () {
 
 setup_dirs () {
 	echo "[*] Setting up system directories"
-	if [ -d $LFS/tools ]; then
-		rm -Rf $LFS/tools
+	if [ ! -d $LFS/tools ]; then
+		mkdir -p $LFS/tools
 	fi
-	mkdir -p $LFS/tools
 	if [ ! -d /tools ]; then
 		sudo ln -sv $LFS/tools /
 	fi

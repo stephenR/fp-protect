@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o verbose
+set -v
 
 setup_env () {
 	echo "[*] Setting up environment"

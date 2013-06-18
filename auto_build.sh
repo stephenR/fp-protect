@@ -67,26 +67,30 @@ build_gcc_pass1 () {
 		git clone git@zero-entropy.de:gcc.git gcc || exit 1
 		cd gcc
 		git checkout -b fpprotect origin/fpprotect_gimple
-
-		for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
-		do
-			cp -uv $file{,.orig}
-			sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
-				-e 's@/usr@/tools@g' $file.orig > $file
-			echo '
-	#undef STANDARD_STARTFILE_PREFIX_1
-	#undef STANDARD_STARTFILE_PREFIX_2
-	#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
-	#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
-			touch $file.orig
-		done
-		sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
-		sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
-
-	else
-		cd gcc
-		git pull
 	fi
+
+	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+	do
+		git checkout $file
+	done
+	git checkout gcc/configure
+	git pull
+
+	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+	do
+		cp -uv $file{,.orig}
+		sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
+			-e 's@/usr@/tools@g' $file.orig > $file
+		echo '
+#undef STANDARD_STARTFILE_PREFIX_1
+#undef STANDARD_STARTFILE_PREFIX_2
+#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+		touch $file.orig
+	done
+
+	sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
+	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
 
 	echo "[*] downloading mpfr"
 	wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
@@ -154,5 +158,7 @@ build_binutils
 build_gcc_pass1
 
 #libc configparms
+
+#pass 2 modify configure
 
 	#../gcc/configure CFLAGS="-gdwarf-2 -g3 -O0" CXXFLAGS="-gdwarf-2 -g3 -O0" LDFLAGS="-gdwarf-2 -g3 -O0" CFLAGS_FOR_TARGET="-gdwarf-2 -g3 -O0 -ffp-protect" --prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$(pwd)../mpfr/src --with-mpfr-lib=$(pwd)/mpfr/src/.lib

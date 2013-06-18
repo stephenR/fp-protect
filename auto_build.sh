@@ -9,7 +9,7 @@ setup_env () {
 	export LFS_TGT=x86_64-lfs-linux-gnu
 	export PATH=/tools/bin:/bin:/usr/bin
 	if [ ! $DEBUG ]; then
-		export MAKEFLAGS='-j 2'
+		export MAKEFLAGS='-j 3'
 	fi
 }
 
@@ -44,7 +44,7 @@ build_binutils () {
 
 	echo "[*] Configuring"
 	#../binutils-2.23.2/configure --with-lib-path=/tools/lib --disable-werror
-	../binutils-2.23.2/configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --disable-nls --disable-werror || exit 1
+	../binutils-2.23.2/configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
 	case $(uname -m) in

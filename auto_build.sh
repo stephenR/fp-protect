@@ -62,12 +62,31 @@ build_binutils () {
 build_gcc_pass1 () {
 	echo "[*] gcc pass 1 build process started"
 
+	echo "[*] Checking out / updating fpp gcc"
 	if [ ! -d gcc ]; then
-		echo "[*] Checking out fpp gcc"
 		git clone git@zero-entropy.de:gcc.git gcc || exit 1
-	fi
+		cd gcc
+		git checkout -b fpprotect origin/fpprotect_gimple
 
-	cd gcc
+		for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+		do
+			cp -uv $file{,.orig}
+			sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
+				-e 's@/usr@/tools@g' $file.orig > $file
+			echo '
+	#undef STANDARD_STARTFILE_PREFIX_1
+	#undef STANDARD_STARTFILE_PREFIX_2
+	#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+	#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+			touch $file.orig
+		done
+		sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
+		sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
+
+	else
+		cd gcc
+		git pull
+	fi
 
 	echo "[*] downloading mpfr"
 	wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
@@ -102,21 +121,6 @@ build_gcc_pass1 () {
 		echo "[*] removing gcc build directory"
 		rm -Rf gcc-build
 	fi
-
-	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
-	do
-		cp -uv $file{,.orig}
-		sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
-			-e 's@/usr@/tools@g' $file.orig > $file
-		echo '
-#undef STANDARD_STARTFILE_PREFIX_1
-#undef STANDARD_STARTFILE_PREFIX_2
-#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
-#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
-		touch $file.orig
-	done
-	sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
-	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
 
 	mkdir gcc-build
 	cd gcc-build

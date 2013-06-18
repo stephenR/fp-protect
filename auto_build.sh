@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -v
-
 setup_env () {
 	echo "[*] Setting up environment"
 	export LFS=/home/tsuro/workspace/msc/opt
@@ -271,7 +269,7 @@ build_gcc_pass_2 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../gcc/configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET='-gdwarf-2 -g3 -O0 -ffp-protect' --prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.lib || exit 1
+	../gcc/configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET='-gdwarf-2 -g3 -O0 -ffp-protect' --prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -419,6 +417,34 @@ build_libc_pass_2 () {
 	echo "[*] glibc pass 2 build process finished"
 }
 
+build_nginx () {
+	echo "[*] nginx build process started"
+
+	echo "[*] Checking out"
+	wget http://nginx.org/download/nginx-1.4.1.tar.gz || exit 1
+	if [ -d nginx-1.4.1 ]; then
+		rm -Rf nginx-1.4.1
+	fi
+
+	tar -xf nginx-1.4.1.tar.gz || exit 1
+	rm nginx-1.4.1.tar.gz
+
+	cd nginx-1.4.1
+
+	echo "[*] Configuring"
+	CFLAGS="-ffp-protect -ggdb" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=/tools || exit 1
+
+	echo "[*] Compiling"
+	make $MAKEFLAGS || exit 1
+
+	echo "[*] Installing"
+	make $MAKEFLAGS install || exit 1
+
+	cd ..
+
+	echo "[*] nginx build process finished"
+}
+
 setup_env
 setup_dirs
 #build_binutils_pass_1
@@ -426,11 +452,8 @@ setup_dirs
 #install_linux_headers
 #build_libc_pass_1
 ##build_binutils_pass_2 #is this needed?
-build_gcc_pass_2
-build_libc_pass_2
+#build_gcc_pass_2
+#build_libc_pass_2
 
-#libc configparms
+build_nginx
 
-#pass 2 modify configure
-
-	#../gcc/configure CFLAGS="-gdwarf-2 -g3 -O0" CXXFLAGS="-gdwarf-2 -g3 -O0" LDFLAGS="-gdwarf-2 -g3 -O0" CFLAGS_FOR_TARGET="-gdwarf-2 -g3 -O0 -ffp-protect" --prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$(pwd)../mpfr/src --with-mpfr-lib=$(pwd)/mpfr/src/.lib

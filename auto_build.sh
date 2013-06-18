@@ -53,6 +53,7 @@ build_binutils () {
 	echo "[*] Installing"
 	make $MAKEFLAGS install
 	echo "[*] binutils build process finished"
+	cd ..
 }
 
 setup_env

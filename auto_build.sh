@@ -1,10 +1,10 @@
 #!/bin/bash
 
-KEEP_ARCHIVES=1
+#KEEP_ARCHIVES=1
 
 setup_env () {
 	echo "[*] Setting up environment"
-	export LFS=/home/tsuro/workspace/msc/opt
+	export LFS=~/workspace/msc/opt
 	export LC_ALL=POSIX
 	export LFS_TGT=x86_64-lfs-linux-gnu
 	export PATH=/tools/bin:/bin:/usr/bin
@@ -19,7 +19,9 @@ setup_dirs () {
 		mkdir -p $LFS/tools
 	fi
 	if [ ! -d /tools ]; then
-		sudo ln -sv $LFS/tools /
+		echo "Please create a symlink from /tools to $LFS/tools first"
+		echo "e.g.: \"sudo ln -sv $LFS/tools /\""
+		exit 1
 	fi
 }
 
@@ -46,7 +48,6 @@ build_binutils_pass_1 () {
 	cd binutils-build
 
 	echo "[*] Configuring"
-	#../binutils-2.23.2/configure --with-lib-path=/tools/lib --disable-werror
 	../binutils-2.23.2/configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -55,50 +56,6 @@ build_binutils_pass_1 () {
 	esac
 	echo "[*] Installing"
 	make $MAKEFLAGS install || exit 1
-	echo "[*] binutils pass 1 build process finished"
-	cd ..
-
-	if [ ! $DEBUG ]; then
-		echo "[*] removing binutils build directory"
-		rm -Rf binutils-build
-	fi
-}
-
-build_binutils_pass_2 () {
-	echo "[*] binutils pass 2 build process started"
-
-	if [ ! -d binutils-2.23.2 ]; then
-		echo "[*] Downloading binutils"
-		if [ ! -f binutils-2.23.2.tar.gz ];then
-			wget http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.gz || exit 1
-		fi
-		tar -xf binutils-2.23.2.tar.gz || exit 1
-		if [ ! $KEEP_ARCHIVES ]; then
-			rm binutils-2.23.2.tar.gz
-		fi
-	fi
-
-	if [ -d binutils-build ]; then
-		echo "[*] removing binutils build directory"
-		rm -Rf binutils-build
-	fi
-
-	mkdir binutils-build
-	cd binutils-build
-
-	echo "[*] Configuring"
-	../binutils-2.23.2/configure CC="$LFS_TGT-gcc" AR="$LFS_TGT-ar" RANLIB="$LFS_TGT-ranlib" --prefix=/tools --with-lib-path=/tools/lib --disable-nls || exit 1
-
-	echo "[*] Compiling"
-	make $MAKEFLAGS || exit 1
-
-	echo "[*] Installing"
-	make $MAKEFLAGS install || exit 1
-
-	make -C ld clean || exit 1
-	make -C ld LIB_PATH=/usr/lib:/lib || exit 1
-	cp -v ld/ld-new /tools/bin || exit 1
-
 	echo "[*] binutils pass 1 build process finished"
 	cd ..
 
@@ -480,7 +437,6 @@ install_linux_headers
 echo "libc1" >> $DATEFILE
 date >> $DATEFILE
 build_libc_pass_1
-#build_binutils_pass_2 #is this needed?
 echo "gcc2" >> $DATEFILE
 date >> $DATEFILE
 build_gcc_pass_2

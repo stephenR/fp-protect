@@ -111,7 +111,7 @@ build_gcc_pass_1 () {
 
 	echo "[*] Checking out / updating fpp gcc"
 	if [ ! -d gcc ]; then
-		git clone git@zero-entropy.de:gcc.git gcc || exit 1
+		git clone git://zero-entropy.de/gcc.git gcc || exit 1
 		cd gcc
 		git checkout -b fpprotect origin/fpprotect_gimple
 		cd ..
@@ -203,7 +203,7 @@ build_gcc_pass_2 () {
 
 	echo "[*] Checking out / updating fpp gcc"
 	if [ ! -d gcc ]; then
-		git clone git@zero-entropy.de:gcc.git gcc || exit 1
+		git clone git://zero-entropy.de/gcc.git gcc || exit 1
 		cd gcc
 		git checkout -b fpprotect origin/fpprotect_gimple
 		cd ..
@@ -319,7 +319,7 @@ build_libc_pass_1 () {
 
 	echo "[*] Checking out / updating fpp libc"
 	if [ ! -d glibc ]; then
-		git clone git@zero-entropy.de:glibc.git glibc || exit 1
+		git clone git://zero-entropy.de/glibc.git glibc || exit 1
 		cd glibc
 		git checkout -b fpp origin/fpp
 		cd ..
@@ -370,7 +370,7 @@ build_libc_pass_2 () {
 
 	echo "[*] Checking out / updating fpp libc"
 	if [ ! -d glibc ]; then
-		git clone git@zero-entropy.de:glibc.git glibc || exit 1
+		git clone git://zero-entropy.de/glibc.git glibc || exit 1
 		cd glibc
 		git checkout -b fpp origin/fpp
 		cd ..

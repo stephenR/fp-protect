@@ -116,7 +116,7 @@ revert_gcc () {
 	git checkout gcc/configure
 }
 gcc_download_deps () {
-	if [ -f mpfr-3.1.1.tar.xz ]; then
+	if [ ! -f mpfr-3.1.1.tar.xz ]; then
 		echo "[*] downloading mpfr"
 		wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
 	fi
@@ -129,7 +129,7 @@ gcc_download_deps () {
 	fi
 	mv mpfr-3.1.1 mpfr
 
-	if [ -f mpc-1.0.1.tar.gz ]; then
+	if [ ! -f mpc-1.0.1.tar.gz ]; then
 		echo "[*] downloading mpc"
 		wget http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz || exit 1
 	fi
@@ -142,7 +142,7 @@ gcc_download_deps () {
 	fi
 	mv mpc-1.0.1 mpc
 
-	if [ -f gmp-5.1.1.tar.xz ]; then
+	if [ ! -f gmp-5.1.1.tar.xz ]; then
 		echo "[*] downloading gmp"
 		wget ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz || exit 1
 	fi
@@ -301,7 +301,7 @@ build_gcc_pass_2 () {
 install_linux_headers () {
 	echo "[*] installing linux headers"
 
-	if [ -f linux-3.8.1.tar.xz ]; then
+	if [ ! -f linux-3.8.1.tar.xz ]; then
 		wget http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz || exit 1
 	fi
 	if [ -d linux-3.8.1 ]; then
@@ -317,6 +317,9 @@ install_linux_headers () {
 	make INSTALL_HDR_PATH=dest headers_install
 	cp -rv dest/include/* /tools/include
 	cd ..
+	if [ ! $DEBUG ]; then
+		rm -Rf linux-3.8.1
+	fi
 }
 
 build_libc_pass_1 () {
@@ -425,7 +428,7 @@ build_libc_pass_2 () {
 build_nginx () {
 	echo "[*] nginx build process started"
 
-	if [ -f nginx-1.4.1.tar.gz ]; then
+	if [ ! -f nginx-1.4.1.tar.gz ]; then
 		echo "[*] Downloading nginx"
 		wget http://nginx.org/download/nginx-1.4.1.tar.gz || exit 1
 	fi
@@ -452,6 +455,9 @@ build_nginx () {
 	cd ..
 
 	echo "[*] nginx build process finished"
+	if [ ! $DEBUG ]; then
+		rm -Rf nginx-1.4.1
+	fi
 }
 
 DATEFILE="$(date '+%C%y-%m-%d-%H-%M').log"

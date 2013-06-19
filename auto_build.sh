@@ -4,7 +4,7 @@
 
 setup_env () {
 	echo "[*] Setting up environment"
-	export LFS=~/workspace/msc/opt
+	export LFS=~/workspace/fpp
 	export LC_ALL=POSIX
 	export LFS_TGT=x86_64-lfs-linux-gnu
 	export PATH=/tools/bin:/bin:/usr/bin

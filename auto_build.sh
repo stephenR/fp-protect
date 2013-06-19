@@ -1,5 +1,7 @@
 #!/bin/bash
 
+KEEP_ARCHIVES=1
+
 setup_env () {
 	echo "[*] Setting up environment"
 	export LFS=/home/tsuro/workspace/msc/opt
@@ -26,9 +28,13 @@ build_binutils_pass_1 () {
 
 	if [ ! -d binutils-2.23.2 ]; then
 		echo "[*] Downloading binutils"
-		wget http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.gz || exit 1
+		if [ ! -f binutils-2.23.2.tar.gz ]; then
+			wget http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.gz || exit 1
+		fi
 		tar -xf binutils-2.23.2.tar.gz || exit 1
-		rm binutils-2.23.2.tar.gz
+		if [ ! $KEEP_ARCHIVES ]; then
+			rm binutils-2.23.2.tar.gz
+		fi
 	fi
 
 	if [ -d binutils-build ]; then
@@ -63,9 +69,13 @@ build_binutils_pass_2 () {
 
 	if [ ! -d binutils-2.23.2 ]; then
 		echo "[*] Downloading binutils"
-		wget http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.gz || exit 1
+		if [ ! -f binutils-2.23.2.tar.gz ];then
+			wget http://ftp.gnu.org/gnu/binutils/binutils-2.23.2.tar.gz || exit 1
+		fi
 		tar -xf binutils-2.23.2.tar.gz || exit 1
-		rm binutils-2.23.2.tar.gz
+		if [ ! $KEEP_ARCHIVES ]; then
+			rm binutils-2.23.2.tar.gz
+		fi
 	fi
 
 	if [ -d binutils-build ]; then
@@ -105,6 +115,46 @@ revert_gcc () {
 	done
 	git checkout gcc/configure
 }
+gcc_download_deps () {
+	if [ -f mpfr-3.1.1.tar.xz ]; then
+		echo "[*] downloading mpfr"
+		wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
+	fi
+	tar -xf mpfr-3.1.1.tar.xz || exit 1
+	if [ ! $KEEP_ARCHIVES ]; then
+		rm mpfr-3.1.1.tar.xz 
+	fi
+	if [ -d mpfr ]; then
+		rm -Rf mpfr
+	fi
+	mv mpfr-3.1.1 mpfr
+
+	if [ -f mpc-1.0.1.tar.gz ]; then
+		echo "[*] downloading mpc"
+		wget http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz || exit 1
+	fi
+	tar -xf mpc-1.0.1.tar.gz || exit 1
+	if [ ! $KEEP_ARCHIVES ]; then
+		rm mpc-1.0.1.tar.gz
+	fi
+	if [ -d mpc ]; then
+		rm -Rf mpc
+	fi
+	mv mpc-1.0.1 mpc
+
+	if [ -f gmp-5.1.1.tar.xz ]; then
+		echo "[*] downloading gmp"
+		wget ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz || exit 1
+	fi
+	tar -xf gmp-5.1.1.tar.xz || exit 1
+	if [ ! $KEEP_ARCHIVES ]; then
+		rm gmp-5.1.1.tar.xz
+	fi
+	if [ -d gmp ]; then
+		rm -Rf gmp
+	fi
+	mv gmp-5.1.1 gmp
+}
 
 build_gcc_pass_1 () {
 	echo "[*] gcc pass 1 build process started"
@@ -138,33 +188,7 @@ build_gcc_pass_1 () {
 	sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
 	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
 
-	echo "[*] downloading mpfr"
-	wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
-	tar -xf mpfr-3.1.1.tar.xz || exit 1
-	rm mpfr-3.1.1.tar.xz 
-	if [ -d mpfr ]; then
-		rm -Rf mpfr
-	fi
-	mv mpfr-3.1.1 mpfr
-
-	echo "[*] downloading mpc"
-	wget http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz || exit 1
-	tar -xf mpc-1.0.1.tar.gz || exit 1
-	rm mpc-1.0.1.tar.gz
-	if [ -d mpc ]; then
-		rm -Rf mpc
-	fi
-	mv mpc-1.0.1 mpc
-
-	echo "[*] downloading gmp"
-	wget ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz || exit 1
-	tar -xf gmp-5.1.1.tar.xz || exit 1
-	rm gmp-5.1.1.tar.xz
-	if [ -d gmp ]; then
-		rm -Rf gmp
-	fi
-	mv gmp-5.1.1 gmp
-
+	gcc_download_deps
 	cd ..
 
 	if [ -d gcc-build ]; then
@@ -231,32 +255,7 @@ build_gcc_pass_2 () {
 
 	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
 
-	echo "[*] downloading mpfr"
-	wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
-	tar -xf mpfr-3.1.1.tar.xz || exit 1
-	rm mpfr-3.1.1.tar.xz 
-	if [ -d mpfr ]; then
-		rm -Rf mpfr
-	fi
-	mv mpfr-3.1.1 mpfr
-
-	echo "[*] downloading mpc"
-	wget http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz || exit 1
-	tar -xf mpc-1.0.1.tar.gz || exit 1
-	rm mpc-1.0.1.tar.gz
-	if [ -d mpc ]; then
-		rm -Rf mpc
-	fi
-	mv mpc-1.0.1 mpc
-
-	echo "[*] downloading gmp"
-	wget ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz || exit 1
-	tar -xf gmp-5.1.1.tar.xz || exit 1
-	rm gmp-5.1.1.tar.xz
-	if [ -d gmp ]; then
-		rm -Rf gmp
-	fi
-	mv gmp-5.1.1 gmp
+	gcc_download_deps
 
 	cd ..
 
@@ -301,17 +300,23 @@ build_gcc_pass_2 () {
 
 install_linux_headers () {
 	echo "[*] installing linux headers"
-	wget http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz || exit 1
+
+	if [ -f linux-3.8.1.tar.xz ]; then
+		wget http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz || exit 1
+	fi
 	if [ -d linux-3.8.1 ]; then
 		rm -Rf linux-3.8.1
 	fi
 	tar -xf linux-3.8.1.tar.xz || exit 1
-	rm linux-3.8.1.tar.xz
+	if [ ! $KEEP_ARCHIVES ]; then
+		rm linux-3.8.1.tar.xz
+	fi
 	cd linux-3.8.1
 	make mrproper || exit 1
 	make headers_check || exit 1
 	make INSTALL_HDR_PATH=dest headers_install
 	cp -rv dest/include/* /tools/include
+	cd ..
 }
 
 build_libc_pass_1 () {
@@ -420,14 +425,18 @@ build_libc_pass_2 () {
 build_nginx () {
 	echo "[*] nginx build process started"
 
-	echo "[*] Checking out"
-	wget http://nginx.org/download/nginx-1.4.1.tar.gz || exit 1
+	if [ -f nginx-1.4.1.tar.gz ]; then
+		echo "[*] Downloading nginx"
+		wget http://nginx.org/download/nginx-1.4.1.tar.gz || exit 1
+	fi
 	if [ -d nginx-1.4.1 ]; then
 		rm -Rf nginx-1.4.1
 	fi
 
 	tar -xf nginx-1.4.1.tar.gz || exit 1
-	rm nginx-1.4.1.tar.gz
+	if [ ! $KEEP_ARCHIVES ]; then
+		rm nginx-1.4.1.tar.gz
+	fi
 
 	cd nginx-1.4.1
 
@@ -445,15 +454,36 @@ build_nginx () {
 	echo "[*] nginx build process finished"
 }
 
-setup_env
-setup_dirs
-#build_binutils_pass_1
-#build_gcc_pass_1
-#install_linux_headers
-#build_libc_pass_1
-##build_binutils_pass_2 #is this needed?
-#build_gcc_pass_2
-#build_libc_pass_2
+DATEFILE="$(date '+%C%y-%m-%d-%H-%M').log"
 
+echo "Start" >> $DATEFILE
+date >> $DATEFILE
+setup_env
+echo "dirs" >> $DATEFILE
+date >> $DATEFILE
+setup_dirs
+echo "binutils" >> $DATEFILE
+date >> $DATEFILE
+build_binutils_pass_1
+echo "gcc1" >> $DATEFILE
+date >> $DATEFILE
+build_gcc_pass_1
+echo "linux headers" >> $DATEFILE
+date >> $DATEFILE
+install_linux_headers
+echo "libc1" >> $DATEFILE
+date >> $DATEFILE
+build_libc_pass_1
+#build_binutils_pass_2 #is this needed?
+echo "gcc2" >> $DATEFILE
+date >> $DATEFILE
+build_gcc_pass_2
+echo "libc2" >> $DATEFILE
+date >> $DATEFILE
+build_libc_pass_2
+echo "nginx" >> $DATEFILE
+date >> $DATEFILE
 build_nginx
+echo "Finished" >> $DATEFILE
+date >> $DATEFILE
 

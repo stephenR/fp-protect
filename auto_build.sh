@@ -3,7 +3,7 @@
 KEEP_ARCHIVES=1
 #FPPROTECT_FLAGS="-ffp-protect"
 FINAL_PATH="/tools-nofpp"
-LFS=~/workspace/nofpp
+LFS=~/workspace/fpp
 
 setup_env () {
 	echo "[*] Setting up environment"
@@ -18,12 +18,12 @@ setup_env () {
 
 setup_dirs () {
 	echo "[*] Setting up system directories"
-	if [ ! -d $LFS/tools ]; then
-		mkdir -p $LFS/tools
+	if [ ! -d ${LFS}${FINAL_PATH} ]; then
+		mkdir -p ${LFS}${FINAL_PATH}
 	fi
 	if [ ! -d $FINAL_PATH ]; then
-		echo "Please create a symlink from $FINAL_PATH to $LFS/tools first"
-		echo "e.g.: \"sudo ln -sv $LFS/tools $FINAL_PATH\""
+		echo "Please create a symlink from $FINAL_PATH to ${LFS}${FINAL_PATH} first"
+		echo "e.g.: \"sudo ln -sv ${LFS}${FINAL_PATH} $FINAL_PATH\""
 		exit 1
 	fi
 }

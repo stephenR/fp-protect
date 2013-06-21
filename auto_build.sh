@@ -2,7 +2,6 @@
 
 KEEP_ARCHIVES=1
 #FPPROTECT_FLAGS="-ffp-protect"
-FPPROTECT_FLAGS=""
 FINAL_PATH="/tools-nofpp"
 LFS=~/workspace/nofpp
 
@@ -123,8 +122,6 @@ gcc_setup () {
 	else
 		GCC_FOLDER=gcc-nofpp
 	fi
-
-	git clone git://sourceware.org/git/glibc.git
 
 	echo "[*] Checking out / updating fpp gcc"
 	if [ ! -d $GCC_FOLDER ]; then
@@ -425,15 +422,15 @@ setup_env
 echo "dirs" >> $DATEFILE
 date >> $DATEFILE
 setup_dirs
-#echo "binutils" >> $DATEFILE
-#date >> $DATEFILE
-#build_binutils_pass_1
-#echo "gcc1" >> $DATEFILE
-#date >> $DATEFILE
-#build_gcc_pass_1
-#echo "linux headers" >> $DATEFILE
-#date >> $DATEFILE
-#install_linux_headers
+echo "binutils" >> $DATEFILE
+date >> $DATEFILE
+build_binutils_pass_1
+echo "gcc1" >> $DATEFILE
+date >> $DATEFILE
+build_gcc_pass_1
+echo "linux headers" >> $DATEFILE
+date >> $DATEFILE
+install_linux_headers
 echo "libc1" >> $DATEFILE
 date >> $DATEFILE
 build_libc_pass_1

@@ -1,13 +1,15 @@
 #!/bin/bash
 
 #KEEP_ARCHIVES=1
+FPPROTECT_FLAGS="-ffp-protect"
+FINAL_PATH="/tools"
 
 setup_env () {
 	echo "[*] Setting up environment"
 	export LFS=~/workspace/fpp
 	export LC_ALL=POSIX
 	export LFS_TGT=x86_64-lfs-linux-gnu
-	export PATH=/tools/bin:/bin:/usr/bin
+	export PATH="$FINAL_PATH/bin:/bin:/usr/bin"
 	if [ ! $DEBUG ]; then
 		export MAKEFLAGS='-j 3'
 	fi
@@ -18,9 +20,9 @@ setup_dirs () {
 	if [ ! -d $LFS/tools ]; then
 		mkdir -p $LFS/tools
 	fi
-	if [ ! -d /tools ]; then
-		echo "Please create a symlink from /tools to $LFS/tools first"
-		echo "e.g.: \"sudo ln -sv $LFS/tools /\""
+	if [ ! -d $FINAL_PATH ]; then
+		echo "Please create a symlink from $FINAL_PATH to $LFS/tools first"
+		echo "e.g.: \"sudo ln -sv $LFS/tools $FINAL_PATH\""
 		exit 1
 	fi
 }
@@ -48,11 +50,11 @@ build_binutils_pass_1 () {
 	cd binutils-build
 
 	echo "[*] Configuring"
-	../binutils-2.23.2/configure --prefix=/tools --with-sysroot=$LFS --with-lib-path=/tools/lib --target=$LFS_TGT --disable-nls --disable-werror || exit 1
+	../binutils-2.23.2/configure --prefix=$FINAL_PATH --with-sysroot=$LFS --with-lib-path=$FINAL_PATH/lib --target=$LFS_TGT --disable-nls --disable-werror || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
 	case $(uname -m) in
-		x86_64) mkdir -v /tools/lib && ln -sv lib /tools/lib64 ;;
+		x86_64) mkdir -v $FINAL_PATH/lib && ln -sv lib $FINAL_PATH/lib64 ;;
 	esac
 	echo "[*] Installing"
 	make $MAKEFLAGS install || exit 1
@@ -132,13 +134,13 @@ build_gcc_pass_1 () {
 	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
 	do
 		cp -uv $file{,.orig}
-		sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
-			-e 's@/usr@/tools@g' $file.orig > $file
-		echo '
+		sed -e "s@/lib\(64\)\?\(32\)\?/ld@${FINAL_PATH}&@g" \
+			-e "s@/usr@${FINAL_PATH}@g" $file.orig > $file
+		echo "
 #undef STANDARD_STARTFILE_PREFIX_1
 #undef STANDARD_STARTFILE_PREFIX_2
-#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
-#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+#define STANDARD_STARTFILE_PREFIX_1 \"$FINAL_PATH/lib/\"
+#define STANDARD_STARTFILE_PREFIX_2 \"\"" >> $file
 		touch $file.orig
 	done
 
@@ -157,7 +159,7 @@ build_gcc_pass_1 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../gcc/configure --target=$LFS_TGT --prefix=/tools --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
+	../gcc/configure --target=$LFS_TGT --prefix=$FINAL_PATH --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
 
@@ -200,13 +202,13 @@ build_gcc_pass_2 () {
 	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
 	do
 		cp -uv $file{,.orig}
-		sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
-			-e 's@/usr@/tools@g' $file.orig > $file
-		echo '
+		sed -e "s@/lib\(64\)\?\(32\)\?/ld@${FINAL_PATH}&@g" \
+			-e "s@/usr@${FINAL_PATH}@g" $file.orig > $file
+		echo "
 #undef STANDARD_STARTFILE_PREFIX_1
 #undef STANDARD_STARTFILE_PREFIX_2
-#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
-#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+#define STANDARD_STARTFILE_PREFIX_1 \"$FINAL_PATH/lib/\"
+#define STANDARD_STARTFILE_PREFIX_2 \"\"" >> $file
 		touch $file.orig
 	done
 
@@ -225,7 +227,7 @@ build_gcc_pass_2 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../gcc/configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET='-gdwarf-2 -g3 -O3 -ffp-protect' --prefix=/tools --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
+	../gcc/configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-gdwarf-2 -g3 -O3 $FPPROTECT_FLAGS" --prefix=$FINAL_PATH --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -233,7 +235,7 @@ build_gcc_pass_2 () {
 	echo "[*] Installing"
 	make $MAKEFLAGS install || exit 1
 
-	ln -sv gcc /tools/bin/cc
+	ln -sv gcc $FINAL_PATH/bin/cc
 
 	ln -sv libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
@@ -241,7 +243,7 @@ build_gcc_pass_2 () {
 
 	echo 'main(){}' > dummy.c
 	cc dummy.c || exit 1
-	readelf -l a.out | grep ': /tools' | exit 1
+	readelf -l a.out | grep ": $FINAL_PATH" | exit 1
 	rm dummy.c a.out
 
 	if [ ! $DEBUG ]; then
@@ -272,7 +274,7 @@ install_linux_headers () {
 	make mrproper || exit 1
 	make headers_check || exit 1
 	make INSTALL_HDR_PATH=dest headers_install
-	cp -rv dest/include/* /tools/include
+	cp -rv dest/include/* $FINAL_PATH/include
 	cd ..
 	if [ ! $DEBUG ]; then
 		rm -Rf linux-3.8.1
@@ -306,7 +308,7 @@ build_libc_pass_1 () {
 	echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../glibc/configure --prefix=/tools --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=/tools/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O1 -ggdb -ffp-protect" LDFLAGS="-ggdb"  || exit 1
+	../glibc/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O1 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -319,7 +321,7 @@ build_libc_pass_1 () {
 	echo "[*] Checking compiler output"
 	echo 'main(){}' > dummy.c
 	$LFS_TGT-gcc dummy.c
-	readelf -l a.out | grep ': /tools' || exit 1
+	readelf -l a.out | grep ": $FINAL_PATH" || exit 1
 	rm -v dummy.c a.out
 
 	if [ ! $DEBUG ]; then
@@ -358,7 +360,7 @@ build_libc_pass_2 () {
 	#echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../glibc/configure --prefix=/tools --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=/tools/include CFLAGS="-O1 -ggdb -ffp-protect" LDFLAGS="-ggdb" || exit 1
+	../glibc/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-O1 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -371,7 +373,7 @@ build_libc_pass_2 () {
 	echo "[*] Checking compiler output"
 	echo 'main(){}' > dummy.c
 	cc dummy.c || exit 1
-	readelf -l a.out | grep ': /tools' | exit 1
+	readelf -l a.out | grep ": $FINAL_PATH" | exit 1
 	rm dummy.c a.out
 
 	if [ ! $DEBUG ]; then
@@ -401,7 +403,7 @@ build_nginx () {
 	cd nginx-1.4.1
 
 	echo "[*] Configuring"
-	CFLAGS="-ffp-protect -ggdb" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=/tools || exit 1
+	CFLAGS="$FPPROTECT_FLAGS -ggdb" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$FINAL_PATH || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1

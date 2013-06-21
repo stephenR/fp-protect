@@ -72,9 +72,9 @@ build_binutils_pass_1 () {
 revert_gcc () {
 	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
 	do
-		git checkout $file
+		git checkout $file || exit 1
 	done
-	git checkout gcc/configure
+	git checkout gcc/configure || exit 1
 }
 gcc_download_deps () {
 	if [ ! -f mpfr-3.1.1.tar.xz ]; then
@@ -117,21 +117,37 @@ gcc_download_deps () {
 	mv gmp-5.1.1 gmp
 }
 
-build_gcc_pass_1 () {
-	echo "[*] gcc pass 1 build process started"
+gcc_setup () {
+	if [ $FPPROTECT_FLAGS ]; then
+		GCC_FOLDER=gcc
+	else
+		GCC_FOLDER=gcc-nofpp
+	fi
+
+	git clone git://sourceware.org/git/glibc.git
 
 	echo "[*] Checking out / updating fpp gcc"
-	if [ ! -d gcc ]; then
-		git clone git://zero-entropy.de/gcc.git gcc || exit 1
-		cd gcc
-		git checkout -b fpprotect origin/fpprotect_gimple
+	if [ ! -d $GCC_FOLDER ]; then
+		if [ $FPPROTECT_FLAGS ]; then
+			git clone git://zero-entropy.de/gcc.git $GCC_FOLDER || exit 1
+		else
+			git clone git://gcc.gnu.org/git/gcc.git $GCC_FOLDER || exit 1
+		fi
+		cd $GCC_FOLDER
+		if [ $FPPROTECT_FLAGS ]; then
+			git checkout -b fpprotect origin/fpprotect_gimple || exit 1
+		else
+			git checkout 31d89c5 || exit 1
+		fi
 		cd ..
 	fi
-	cd gcc
+	cd $GCC_FOLDER
 
 	revert_gcc
 
-	git pull origin fpprotect_gimple
+	if [ $FPPROTECT_FLAGS ]; then
+		git pull origin fpprotect_gimple
+	fi
 
 	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
 	do
@@ -146,8 +162,25 @@ build_gcc_pass_1 () {
 		touch $file.orig
 	done
 
-	sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
 	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
+}
+
+gcc_cleanup () {
+	if [ ! $DEBUG ]; then
+		echo "[*] removing gcc build directories"
+		rm -Rf gcc-build
+		rm -Rf $GCC_FOLDER/mpfr
+		rm -Rf $GCC_FOLDER/mpc
+		rm -Rf $GCC_FOLDER/gmp
+	fi
+}
+
+build_gcc_pass_1 () {
+	echo "[*] gcc pass 1 build process started"
+
+	gcc_setup
+
+	sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
 
 	gcc_download_deps
 	cd ..
@@ -161,7 +194,7 @@ build_gcc_pass_1 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../gcc/configure --target=$LFS_TGT --prefix=$FINAL_PATH --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
+	../$GCC_FOLDER/configure --target=$LFS_TGT --prefix=$FINAL_PATH --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
 
@@ -172,13 +205,7 @@ build_gcc_pass_1 () {
 
 	cd ..
 
-	if [ ! $DEBUG ]; then
-		echo "[*] removing gcc build directories"
-		rm -Rf gcc-build
-		rm -Rf gcc/mpfr
-		rm -Rf gcc/mpc
-		rm -Rf gcc/gmp
-	fi
+	gcc_cleanup
 
 	echo "[*] gcc pass 1 build process finished"
 }
@@ -186,35 +213,9 @@ build_gcc_pass_1 () {
 build_gcc_pass_2 () {
 	echo "[*] gcc pass 2 build process started"
 
-	echo "[*] Checking out / updating fpp gcc"
-	if [ ! -d gcc ]; then
-		git clone git://zero-entropy.de/gcc.git gcc || exit 1
-		cd gcc
-		git checkout -b fpprotect origin/fpprotect_gimple
-		cd ..
-	fi
-	cd gcc
-
-	revert_gcc
-
-	git pull origin fpprotect_gimple
+	gcc_setup
 
 	cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/include-fixed/limits.h
-
-	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
-	do
-		cp -uv $file{,.orig}
-		sed -e "s@/lib\(64\)\?\(32\)\?/ld@${FINAL_PATH}&@g" \
-			-e "s@/usr@${FINAL_PATH}@g" $file.orig > $file
-		echo "
-#undef STANDARD_STARTFILE_PREFIX_1
-#undef STANDARD_STARTFILE_PREFIX_2
-#define STANDARD_STARTFILE_PREFIX_1 \"$FINAL_PATH/lib/\"
-#define STANDARD_STARTFILE_PREFIX_2 \"\"" >> $file
-		touch $file.orig
-	done
-
-	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
 
 	gcc_download_deps
 
@@ -229,7 +230,7 @@ build_gcc_pass_2 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../gcc/configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-gdwarf-2 -g3 -O3 $FPPROTECT_FLAGS" --prefix=$FINAL_PATH --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../gcc/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
+	../$GCC_FOLDER/configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-gdwarf-2 -g3 -O3 $FPPROTECT_FLAGS" --prefix=$FINAL_PATH --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -248,15 +249,9 @@ build_gcc_pass_2 () {
 	readelf -l a.out | grep ": $FINAL_PATH" | exit 1
 	rm dummy.c a.out
 
-	if [ ! $DEBUG ]; then
-		echo "[*] removing gcc build directories"
-		rm -Rf gcc-build
-		rm -Rf gcc/mpfr
-		rm -Rf gcc/mpc
-		rm -Rf gcc/gmp
-	fi
+	gcc_cleanup
 
-	echo "[*] gcc pass 1 build process finished"
+	echo "[*] gcc pass 2 build process finished"
 }
 
 install_linux_headers () {
@@ -283,19 +278,33 @@ install_linux_headers () {
 	fi
 }
 
-build_libc_pass_1 () {
-	echo "[*] libc pass 1 build process started"
+libc_setup () {
+	if [ $FPPROTECT_FLAGS ]; then
+		GLIBC_FOLDER=glibc
+	else
+		GLIBC_FOLDER=glibc-nofpp
+	fi
 
 	echo "[*] Checking out / updating fpp libc"
 	if [ ! -d glibc ]; then
-		git clone git://zero-entropy.de/glibc.git glibc || exit 1
-		cd glibc
-		git checkout -b fpp origin/fpp
+		if [ $FPPROTECT_FLAGS ]; then
+			git clone git://zero-entropy.de/glibc.git $GLIBC_FOLDER || exit 1
+		else
+			git clone git://sourceware.org/git/glibc.git $GLIBC_FOLDER || exit 1
+		fi
+		cd $GLIBC_FOLDER
+		if [ $FPPROTECT_FLAGS ]; then
+			git checkout -b fpp origin/fpp || exit 1
+		else
+			git checkout 043c748 || exit 1
+		fi
 		cd ..
 	fi
 
-	cd glibc
-	git pull origin fpp
+	cd $GLIBC_FOLDER
+	if [ $FPPROTECT_FLAGS ]; then
+		git pull origin fpp
+	fi
 
 	cd ..
 
@@ -306,11 +315,17 @@ build_libc_pass_1 () {
 
 	mkdir glibc-build
 	cd glibc-build
+}
+
+build_libc_pass_1 () {
+	echo "[*] libc pass 1 build process started"
+
+	libc_setup
 
 	echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../glibc/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
+	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -337,32 +352,13 @@ build_libc_pass_1 () {
 build_libc_pass_2 () {
 	echo "[*] libc pass 2 build process started"
 
-	echo "[*] Checking out / updating fpp libc"
-	if [ ! -d glibc ]; then
-		git clone git://zero-entropy.de/glibc.git glibc || exit 1
-		cd glibc
-		git checkout -b fpp origin/fpp
-		cd ..
-	fi
-
-	cd glibc
-	git pull origin fpp
-
-	cd ..
-
-	if [ -d glibc-build ]; then
-		echo "[*] removing glibc build directory"
-		rm -Rf glibc-build
-	fi
-
-	mkdir glibc-build
-	cd glibc-build
+	libc_setup
 
 	#TODO programs needed?
 	#echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../glibc/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
+	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1

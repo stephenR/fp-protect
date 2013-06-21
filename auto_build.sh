@@ -1,12 +1,14 @@
 #!/bin/bash
 
-#KEEP_ARCHIVES=1
-FPPROTECT_FLAGS="-ffp-protect"
-FINAL_PATH="/tools"
+KEEP_ARCHIVES=1
+#FPPROTECT_FLAGS="-ffp-protect"
+FPPROTECT_FLAGS=""
+FINAL_PATH="/tools-nofpp"
+LFS=~/workspace/nofpp
 
 setup_env () {
 	echo "[*] Setting up environment"
-	export LFS=~/workspace/fpp
+	export LFS
 	export LC_ALL=POSIX
 	export LFS_TGT=x86_64-lfs-linux-gnu
 	export PATH="$FINAL_PATH/bin:/bin:/usr/bin"
@@ -323,7 +325,7 @@ build_libc_pass_1 () {
 	echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O1 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
+	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -356,7 +358,7 @@ build_libc_pass_2 () {
 	#echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-O1 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
+	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -423,15 +425,15 @@ setup_env
 echo "dirs" >> $DATEFILE
 date >> $DATEFILE
 setup_dirs
-echo "binutils" >> $DATEFILE
-date >> $DATEFILE
-build_binutils_pass_1
-echo "gcc1" >> $DATEFILE
-date >> $DATEFILE
-build_gcc_pass_1
-echo "linux headers" >> $DATEFILE
-date >> $DATEFILE
-install_linux_headers
+#echo "binutils" >> $DATEFILE
+#date >> $DATEFILE
+#build_binutils_pass_1
+#echo "gcc1" >> $DATEFILE
+#date >> $DATEFILE
+#build_gcc_pass_1
+#echo "linux headers" >> $DATEFILE
+#date >> $DATEFILE
+#install_linux_headers
 echo "libc1" >> $DATEFILE
 date >> $DATEFILE
 build_libc_pass_1
@@ -441,9 +443,9 @@ build_gcc_pass_2
 echo "libc2" >> $DATEFILE
 date >> $DATEFILE
 build_libc_pass_2
-echo "nginx" >> $DATEFILE
-date >> $DATEFILE
-build_nginx
+#echo "nginx" >> $DATEFILE
+#date >> $DATEFILE
+#build_nginx
 echo "Finished" >> $DATEFILE
 date >> $DATEFILE
 

@@ -283,7 +283,7 @@ libc_setup () {
 	fi
 
 	echo "[*] Checking out / updating fpp libc"
-	if [ ! -d glibc ]; then
+	if [ ! -d $GLIBC_FOLDER ]; then
 		if [ $FPPROTECT_FLAGS ]; then
 			git clone git://zero-entropy.de/glibc.git $GLIBC_FOLDER || exit 1
 		else

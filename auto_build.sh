@@ -2,7 +2,11 @@
 
 KEEP_ARCHIVES=1
 #FPPROTECT_FLAGS="-ffp-protect"
-FINAL_PATH="/tools-nofpp"
+if [ $FPPROTECT_FLAGS ]; then
+	FINAL_PATH="/tools"
+else
+	FINAL_PATH="/tools-nofpp"
+fi
 LFS=~/workspace/fpp
 
 setup_env () {
@@ -398,7 +402,7 @@ build_nginx () {
 	cd nginx-1.4.1
 
 	echo "[*] Configuring"
-	CFLAGS="$FPPROTECT_FLAGS -ggdb" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$FINAL_PATH || exit 1
+	CFLAGS="$FPPROTECT_FLAGS -ggdb -O3" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$FINAL_PATH || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -440,9 +444,9 @@ build_gcc_pass_2
 echo "libc2" >> $DATEFILE
 date >> $DATEFILE
 build_libc_pass_2
-#echo "nginx" >> $DATEFILE
-#date >> $DATEFILE
-#build_nginx
+echo "nginx" >> $DATEFILE
+date >> $DATEFILE
+build_nginx
 echo "Finished" >> $DATEFILE
 date >> $DATEFILE
 

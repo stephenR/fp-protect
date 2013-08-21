@@ -1,7 +1,7 @@
 #!/bin/bash
 
 KEEP_ARCHIVES=1
-#FPPROTECT_FLAGS="-ffp-protect"
+FPPROTECT_FLAGS="-ffp-protect"
 if [ $FPPROTECT_FLAGS ]; then
 	FINAL_PATH="/tools"
 else

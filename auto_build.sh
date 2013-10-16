@@ -9,15 +9,17 @@ else
 fi
 LFS=~/workspace/fpp
 
+if [ ! $DEBUG ]; then
+	MAKEFLAGS='-j 9'
+fi
+
 setup_env () {
 	echo "[*] Setting up environment"
 	export LFS
 	export LC_ALL=POSIX
 	export LFS_TGT=x86_64-lfs-linux-gnu
 	export PATH="$FINAL_PATH/bin:/bin:/usr/bin"
-	if [ ! $DEBUG ]; then
-		export MAKEFLAGS='-j 3'
-	fi
+	export MAKEFLAGS
 }
 
 setup_dirs () {
@@ -55,7 +57,7 @@ build_binutils_pass_1 () {
 	cd binutils-build
 
 	echo "[*] Configuring"
-	../binutils-2.23.2/configure --prefix=$FINAL_PATH --with-sysroot=$LFS --with-lib-path=$FINAL_PATH/lib --target=$LFS_TGT --disable-nls --disable-werror || exit 1
+	../binutils-2.23.2/configure CFLAGS='-pipe' --prefix=$FINAL_PATH --with-sysroot=$LFS --with-lib-path=$FINAL_PATH/lib --target=$LFS_TGT --disable-nls --disable-werror || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
 	case $(uname -m) in
@@ -195,7 +197,7 @@ build_gcc_pass_1 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../$GCC_FOLDER/configure --target=$LFS_TGT --prefix=$FINAL_PATH --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
+	../$GCC_FOLDER/configure CFLAGS='-pipe' --target=$LFS_TGT --prefix=$FINAL_PATH --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
 
@@ -231,7 +233,7 @@ build_gcc_pass_2 () {
 	cd gcc-build
 
 	echo "[*] Configuring"
-	../$GCC_FOLDER/configure CFLAGS='-gdwarf-2 -g3 -O0' CXXFLAGS='-gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-gdwarf-2 -g3 -O3 $FPPROTECT_FLAGS" --prefix=$FINAL_PATH --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
+	../$GCC_FOLDER/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 $FPPROTECT_FLAGS" --prefix=$FINAL_PATH --with-local-prefix=$LFS --with-native-system-header-dir=$FINAL_PATH/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -326,7 +328,7 @@ build_libc_pass_1 () {
 	echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
+	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-pipe -O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -359,7 +361,7 @@ build_libc_pass_2 () {
 	#echo "build-programs=no" > configparms
 
 	echo "[*] Configuring"
-	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
+	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-pipe -O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1
@@ -402,7 +404,7 @@ build_nginx () {
 	cd nginx-1.4.1
 
 	echo "[*] Configuring"
-	CFLAGS="$FPPROTECT_FLAGS -ggdb -O3" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$FINAL_PATH || exit 1
+	CFLAGS="$FPPROTECT_FLAGS -ggdb -O3 -pipe" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$FINAL_PATH || exit 1
 
 	echo "[*] Compiling"
 	make $MAKEFLAGS || exit 1

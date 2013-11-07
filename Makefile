@@ -1,4 +1,4 @@
-.PHONY: all install clean binutils_build binutils_install
+.PHONY: all install clean
 SHELL = /bin/sh
 
 #TODO temporary folder for gcc1
@@ -6,8 +6,11 @@ DESTDIR=/tools
 LFS_TGT=x86_64-lfs-linux-gnu
 LFS=~/workspace/fpp
 
-BINUTILS_MIRROR=http://ftp.gnu.org/gnu/binutils/
-BINUTILS_SRC=binutils-2.23.2.tar.gz
+#BINUTILS_MIRROR=http://ftp.gnu.org/gnu/binutils/
+#BINUTILS_SRC=binutils-2.23.2.tar.gz
+#BINUTILS_REPO=git://sourceware.org/git/binutils-gdb.git
+BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/
+BINUTILS_SRC=binutils-2.23.52.tar.bz2
 
 all: nginx_fpp
 
@@ -26,21 +29,23 @@ nginx_fpp nginx: nginx% : libc2%
 libc%: gcc%
 	@echo $@
 
-gcc1 gcc1_fpp: binutils_install
+gcc1 gcc1_fpp: $(DESTDIR)/bin/$(LFS_TGT)-ld
 gcc2 gcc2_fpp: gcc2% : libc1%
 gcc%:
 	@echo $@
 
 binutils_src:
+	#git clone $(BINUTILS_REPO) $@
 	wget -c $(BINUTILS_MIRROR)$(BINUTILS_SRC)
 	tar -xf $(BINUTILS_SRC)
 	mv $(basename $(basename $(BINUTILS_SRC))) $@
 
 $(DESTDIR):
+	mkdir -p $(LFS)$(DESTDIR)
 	sudo ln -sv $(LFS)$(DESTDIR) $(DESTDIR)
+	mkdir -v $(DESTDIR)/lib && ln -sv lib $(DESTDIR)/lib64
 
-binutils_install: binutils_build $(DESTDIR)
-	mkdir -v $(DESTDIR)/lib && ln -sv lib $(DESTDIR)/lib64 ;;
+$(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)
 	$(MAKE) -C binutils_build install
 
 binutils_build: binutils_src $(DESTDIR)

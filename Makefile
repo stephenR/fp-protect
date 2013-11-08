@@ -1,4 +1,4 @@
-.PHONY: all install clean
+.PHONY: all install clean libc1 libc1_fpp libc2 libc2_fpp gcc1 gcc1_fpp gcc2 gcc2_fpp
 SHELL = /bin/sh
 
 #TODO temporary folder for gcc1
@@ -30,9 +30,9 @@ libc%: gcc%
 	@echo $@
 
 gcc1 gcc1_fpp: $(DESTDIR)/bin/$(LFS_TGT)-ld
+gcc1 gcc2: gcc_src
+gcc1_fpp gcc2_fpp: gcc_fpp_src
 gcc2 gcc2_fpp: gcc2% : libc1%
-gcc%:
-	@echo $@
 
 binutils_src:
 	#git clone $(BINUTILS_REPO) $@
@@ -53,45 +53,41 @@ binutils_build: binutils_src $(DESTDIR)
 	cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror
 	$(MAKE) -C $@
 
-#KEEP_ARCHIVES=1
+gcc%_src:
+	@echo src: $@
+ifeq ($*,_fpp)
+	git clone git://zero-entropy.de/gcc.git $@
+	cd $@ && git checkout -b fpprotect origin/fpprotect_gimple
+else
+	git clone git://gcc.gnu.org/git/gcc.git $@
+	cd $@ && git checkout 31d89c5
+endif
 
-#LFS=~/workspace/fpp
-#
-#if [ ! $DEBUG ]; then
-#	MAKEFLAGS='-j 9'
-#fi
-#
-#setup_env () {
-#	echo "[*] Setting up environment"
-#	export LFS
-#	export LC_ALL=POSIX
-#	export LFS_TGT=x86_64-lfs-linux-gnu
-#	export PATH="$FINAL_PATH/bin:/bin:/usr/bin"
-#	export MAKEFLAGS
+#$(subst 1,,$(subst 2,,$@))_src
+define gcc_src =
+gcc_$(findstring fpp,$@)_src
+endef
+
+gcc%:
+	@echo $@
+#revert the src folder
+	cd $(gcc_src) && git clean -fdx && git reset --hard
+	cd $(gcc_src) && for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
+		cp -uv $$file{,.orig}; \
+		sed -e "s@/lib\(64\)\?\(32\)\?/ld@$(DESTDIR)&@g" \
+			-e "s@/usr@$(DESTDIR)@g" $$file.orig > $$file; \
+		echo "\
+#undef STANDARD_STARTFILE_PREFIX_1\
+#undef STANDARD_STARTFILE_PREFIX_2\
+#define STANDARD_STARTFILE_PREFIX_1 \"$(DESTDIR)/lib/\"\
+#define STANDARD_STARTFILE_PREFIX_2 \"\"" >> $$file;\
+		touch $$file.orig;\
+	done
+
+	cd $(gcc_src) && sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
+
 #}
-#
-#setup_dirs () {
-#	echo "[*] Setting up system directories"
-#	if [ ! -d ${LFS}${FINAL_PATH} ]; then
-#		mkdir -p ${LFS}${FINAL_PATH}
-#	fi
-#	if [ ! -d $FINAL_PATH ]; then
-#		echo "Please create a symlink from $FINAL_PATH to ${LFS}${FINAL_PATH} first"
-#		echo "e.g.: \"sudo ln -sv ${LFS}${FINAL_PATH} $FINAL_PATH\""
-#		exit 1
-#	fi
-#}
-#
-#build_binutils_pass_1 () {
-#}
-#
-#revert_gcc () {
-#	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
-#	do
-#		git checkout $file || exit 1
-#	done
-#	git checkout gcc/configure || exit 1
-#}
+
 #gcc_download_deps () {
 #	if [ ! -f mpfr-3.1.1.tar.xz ]; then
 #		echo "[*] downloading mpfr"
@@ -134,59 +130,6 @@ binutils_build: binutils_src $(DESTDIR)
 #}
 #
 #gcc_setup () {
-#	if [ $FPPROTECT_FLAGS ]; then
-#		GCC_FOLDER=gcc
-#	else
-#		GCC_FOLDER=gcc-nofpp
-#	fi
-#
-#	echo "[*] Checking out / updating fpp gcc"
-#	if [ ! -d $GCC_FOLDER ]; then
-#		if [ $FPPROTECT_FLAGS ]; then
-#			git clone git://zero-entropy.de/gcc.git $GCC_FOLDER || exit 1
-#		else
-#			git clone git://gcc.gnu.org/git/gcc.git $GCC_FOLDER || exit 1
-#		fi
-#		cd $GCC_FOLDER
-#		if [ $FPPROTECT_FLAGS ]; then
-#			git checkout -b fpprotect origin/fpprotect_gimple || exit 1
-#		else
-#			git checkout 31d89c5 || exit 1
-#		fi
-#		cd ..
-#	fi
-#	cd $GCC_FOLDER
-#
-#	revert_gcc
-#
-#	if [ $FPPROTECT_FLAGS ]; then
-#		git pull origin fpprotect_gimple
-#	fi
-#
-#	for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
-#	do
-#		cp -uv $file{,.orig}
-#		sed -e "s@/lib\(64\)\?\(32\)\?/ld@${FINAL_PATH}&@g" \
-#			-e "s@/usr@${FINAL_PATH}@g" $file.orig > $file
-#		echo "
-##undef STANDARD_STARTFILE_PREFIX_1
-##undef STANDARD_STARTFILE_PREFIX_2
-##define STANDARD_STARTFILE_PREFIX_1 \"$FINAL_PATH/lib/\"
-##define STANDARD_STARTFILE_PREFIX_2 \"\"" >> $file
-#		touch $file.orig
-#	done
-#
-#	sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
-#}
-#
-#gcc_cleanup () {
-#	if [ ! $DEBUG ]; then
-#		echo "[*] removing gcc build directories"
-#		rm -Rf gcc-build
-#		rm -Rf $GCC_FOLDER/mpfr
-#		rm -Rf $GCC_FOLDER/mpc
-#		rm -Rf $GCC_FOLDER/gmp
-#	fi
 #}
 #
 #build_gcc_pass_1 () {

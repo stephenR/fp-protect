@@ -1,44 +1,72 @@
-.PHONY: all install clean libc1 libc1_fpp libc2 libc2_fpp gcc1 gcc1_fpp gcc2 gcc2_fpp
 SHELL = /bin/sh
 
+#TODO PHONY
 #TODO temporary folder for gcc1
 DESTDIR=/tools
 LFS_TGT=x86_64-lfs-linux-gnu
-LFS=~/workspace/fpp
+LFS=$(HOME)/workspace/fpp
 
-#BINUTILS_MIRROR=http://ftp.gnu.org/gnu/binutils/
-#BINUTILS_SRC=binutils-2.23.2.tar.gz
-#BINUTILS_REPO=git://sourceware.org/git/binutils-gdb.git
-BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/
-BINUTILS_SRC=binutils-2.23.52.tar.bz2
+BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
+BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))
+GMP_MIRROR=ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz
+GMP_ARCHIVE=$(notdir $(GMP_MIRROR))
+MPC_MIRROR=http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz
+MPC_ARCHIVE=$(notdir $(MPC_MIRROR))
+MPFR_MIRROR=http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz
+MPFR_ARCHIVE=$(notdir $(MPFR_MIRROR))
+#GCC_ARCHIVES=$(GMP_ARCHIVE) $(MPC_ARCHIVE) $(MPFR_ARCHIVE)
+#ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES)
 
+.PHONY: all
 all: nginx_fpp
 
+.PHONY: install
 install: all
 	$(error install target not yet implemented)
 
-#test:
-#	$(MAKE) -C ./tmp
-
+.PHONY: nginx_fpp nginx
 nginx_fpp nginx: nginx% : libc2%
 	@echo $@
-#ifeq ($*,_fpp)
-#	@echo with fpp
-#endif
 
-libc%: gcc%
-	@echo $@
+libc%: gcc% linux_headers
+	$(error not yet implemented)
+
+.PHONY: linux_headers
+linux_headers:
+	$(error not yet implemented)
 
 gcc1 gcc1_fpp: $(DESTDIR)/bin/$(LFS_TGT)-ld
-gcc1 gcc2: gcc_src
-gcc1_fpp gcc2_fpp: gcc_fpp_src
+gcc1 gcc2: gcc_src/gmp gcc_src/mpc gcc_src/mpfr
+gcc1_fpp gcc2_fpp: gcc_src_fpp/gmp gcc_src_fpp/mpc gcc_src_fpp/mpfr
 gcc2 gcc2_fpp: gcc2% : libc1%
 
-binutils_src:
-	#git clone $(BINUTILS_REPO) $@
-	wget -c $(BINUTILS_MIRROR)$(BINUTILS_SRC)
-	tar -xf $(BINUTILS_SRC)
-	mv $(basename $(basename $(BINUTILS_SRC))) $@
+gcc_src/gmp: $(GMP_ARCHIVE) gcc_src
+gcc_src/mpc: $(MPC_ARCHIVE) gcc_src
+gcc_src/mpfr: $(MPFR_ARCHIVE) gcc_src
+gcc_src_fpp/gmp: $(GMP_ARCHIVE) gcc_src_fpp
+gcc_src_fpp/mpc: $(MPC_ARCHIVE) gcc_src_fpp
+gcc_src_fpp/mpfr: $(MPFR_ARCHIVE) gcc_src_fpp
+
+$(BINUTILS_ARCHIVE):
+	wget -c $(BINUTILS_MIRROR)
+
+$(GMP_ARCHIVE):
+	wget -c $(GMP_MIRROR)
+
+gcc_src/gmp gcc_src/mpc gcc_src/mpfr gcc_src_fpp/gmp gcc_src_fpp/mpc gcc_src_fpp/mpfr:
+	tar -xf $<
+	mv $(basename $(basename $<)) $@
+
+
+$(MPC_ARCHIVE):
+	wget -c $(MPC_MIRROR)
+
+$(MPFR_ARCHIVE):
+	wget -c $(MPFR_MIRROR)
+
+binutils_src: $(BINUTILS_ARCHIVE)
+	tar -xf $(BINUTILS_ARCHIVE)
+	mv $(basename $(basename $(BINUTILS_ARCHIVE))) $@
 
 $(DESTDIR):
 	mkdir -p $(LFS)$(DESTDIR)
@@ -53,25 +81,18 @@ binutils_build: binutils_src $(DESTDIR)
 	cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror
 	$(MAKE) -C $@
 
-gcc%_src:
-	@echo src: $@
-ifeq ($*,_fpp)
-	git clone git://zero-entropy.de/gcc.git $@
-	cd $@ && git checkout -b fpprotect origin/fpprotect_gimple
-else
-	git clone git://gcc.gnu.org/git/gcc.git $@
-	cd $@ && git checkout 31d89c5
-endif
-
-#$(subst 1,,$(subst 2,,$@))_src
 define gcc_src =
-gcc_$(findstring fpp,$@)_src
+gcc_src$(findstring _fpp,$@)
 endef
 
-gcc%:
-	@echo $@
-#revert the src folder
-	cd $(gcc_src) && git clean -fdx && git reset --hard
+gcc_src gcc_src_fpp:
+	if [[ "$@" == *"fpp"* ]]; then \
+		git clone git://zero-entropy.de/gcc.git $@ && \
+		cd $@ && git checkout -b fpprotect origin/fpprotect_gimple \
+	else \
+		git clone git://gcc.gnu.org/git/gcc.git $@ && \
+		cd $@ && git checkout 31d89c5; \
+	fi
 	cd $(gcc_src) && for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
 		cp -uv $$file{,.orig}; \
 		sed -e "s@/lib\(64\)\?\(32\)\?/ld@$(DESTDIR)&@g" \
@@ -84,132 +105,35 @@ gcc%:
 		touch $$file.orig;\
 	done
 
+gcc%:
+#revert the src folder
+#	cd $(gcc_src) && git clean -fdx && git reset --hard
+#
+	cd $(gcc_src) && git checkout -- gcc/configure
 	cd $(gcc_src) && sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
+	if [[ "$@" == *"1"* ]]; then \
+		cd $(gcc_src) && sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure; \
+	else \
+		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(LFS_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
+	fi
 
-#}
+	mkdir $@
 
-#gcc_download_deps () {
-#	if [ ! -f mpfr-3.1.1.tar.xz ]; then
-#		echo "[*] downloading mpfr"
-#		wget http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz || exit 1
-#	fi
-#	tar -xf mpfr-3.1.1.tar.xz || exit 1
-#	if [ ! $KEEP_ARCHIVES ]; then
-#		rm mpfr-3.1.1.tar.xz 
-#	fi
-#	if [ -d mpfr ]; then
-#		rm -Rf mpfr
-#	fi
-#	mv mpfr-3.1.1 mpfr
-#
-#	if [ ! -f mpc-1.0.1.tar.gz ]; then
-#		echo "[*] downloading mpc"
-#		wget http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz || exit 1
-#	fi
-#	tar -xf mpc-1.0.1.tar.gz || exit 1
-#	if [ ! $KEEP_ARCHIVES ]; then
-#		rm mpc-1.0.1.tar.gz
-#	fi
-#	if [ -d mpc ]; then
-#		rm -Rf mpc
-#	fi
-#	mv mpc-1.0.1 mpc
-#
-#	if [ ! -f gmp-5.1.1.tar.xz ]; then
-#		echo "[*] downloading gmp"
-#		wget ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz || exit 1
-#	fi
-#	tar -xf gmp-5.1.1.tar.xz || exit 1
-#	if [ ! $KEEP_ARCHIVES ]; then
-#		rm gmp-5.1.1.tar.xz
-#	fi
-#	if [ -d gmp ]; then
-#		rm -Rf gmp
-#	fi
-#	mv gmp-5.1.1 gmp
-#}
-#
-#gcc_setup () {
-#}
-#
-#build_gcc_pass_1 () {
-#	echo "[*] gcc pass 1 build process started"
-#
-#	gcc_setup
-#
-#	sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure
-#
-#	gcc_download_deps
-#	cd ..
-#
-#	if [ -d gcc-build ]; then
-#		echo "[*] removing gcc build directory"
-#		rm -Rf gcc-build
-#	fi
-#
-#	mkdir gcc-build
-#	cd gcc-build
-#
-#	echo "[*] Configuring"
-#	../$GCC_FOLDER/configure CFLAGS='-pipe' --target=$LFS_TGT --prefix=$FINAL_PATH --with-sysroot=$LFS --with-newlib --without-headers --with-local-prefix=$FINAL_PATH --with-native-system-header-dir=$FINAL_PATH/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs --disable-libatomic || exit 1
-#	echo "[*] Compiling"
-#	make $MAKEFLAGS || exit 1
-#
+	if [[ "$@" == *"1"* ]]; then \
+		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe' --target=$(LFS_TGT) --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-newlib --without-headers --with-local-prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs --disable-libatomic; \
+	else \
+		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" --prefix=$(DESTDIR) --with-local-prefix=$(LFS) --with-native-system-header-dir=$(DESTDIR)/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs; \
+	fi
+
+	$(MAKE) -C $@
+
 #	echo "[*] Installing"
 #	make $MAKEFLAGS install || exit 1
 #
-#	ln -sv libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
-#
-#	cd ..
-#
-#	gcc_cleanup
-#
-#	echo "[*] gcc pass 1 build process finished"
-#}
-#
-#build_gcc_pass_2 () {
-#	echo "[*] gcc pass 2 build process started"
-#
-#	gcc_setup
-#
-#	cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/include-fixed/limits.h
-#
-#	gcc_download_deps
-#
-#	cd ..
-#
-#	if [ -d gcc-build ]; then
-#		echo "[*] removing gcc build directory"
-#		rm -Rf gcc-build
-#	fi
-#
-#	mkdir gcc-build
-#	cd gcc-build
-#
-#	echo "[*] Configuring"
-#	../$GCC_FOLDER/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 $FPPROTECT_FLAGS" --prefix=$FINAL_PATH --with-local-prefix=$LFS --with-native-system-header-dir=$FINAL_PATH/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$PWD/../$GCC_FOLDER/mpfr/src --with-mpfr-lib=$PWD/mpfr/src/.libs || exit 1
-#
-#	echo "[*] Compiling"
-#	make $MAKEFLAGS || exit 1
-#
-#	echo "[*] Installing"
-#	make $MAKEFLAGS install || exit 1
-#
+	#pass2
 #	ln -sv gcc $FINAL_PATH/bin/cc
 #
 #	ln -sv libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
-#
-#	cd ..
-#
-#	echo 'main(){}' > dummy.c
-#	cc dummy.c || exit 1
-#	readelf -l a.out | grep ": $FINAL_PATH" | exit 1
-#	rm dummy.c a.out
-#
-#	gcc_cleanup
-#
-#	echo "[*] gcc pass 2 build process finished"
-#}
 #
 #install_linux_headers () {
 #	echo "[*] installing linux headers"

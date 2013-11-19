@@ -14,6 +14,8 @@ MPC_MIRROR=http://www.multiprecision.org/mpc/download/mpc-1.0.1.tar.gz
 MPC_ARCHIVE=$(notdir $(MPC_MIRROR))
 MPFR_MIRROR=http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz
 MPFR_ARCHIVE=$(notdir $(MPFR_MIRROR))
+LINUX_MIRROR=http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz
+LINUX_ARCHIVE=$(notdir $(LINUX_MIRROR))
 #GCC_ARCHIVES=$(GMP_ARCHIVE) $(MPC_ARCHIVE) $(MPFR_ARCHIVE)
 #ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES)
 
@@ -28,12 +30,19 @@ install: all
 nginx_fpp nginx: nginx% : libc2%
 	@echo $@
 
-libc%: gcc% linux_headers
+libc%: gcc% $(DESTDIR)/include
 	$(error not yet implemented)
 
-.PHONY: linux_headers
-linux_headers:
-	$(error not yet implemented)
+
+$(DESTDIR)/include: linux_src
+	$(MAKE) -C $< mrproper
+	$(MAKE) -C $< headers_check
+	$(MAKE) -C $< INSTALL_HDR_PATH=dest headers_install
+	cp -rv $</dest/include $(DESTDIR)/include
+
+linux_src: $(LINUX_ARCHIVE)
+	tar -xf $<
+	mv $(basename $(basename $<)) $@
 
 gcc1 gcc1_fpp: $(DESTDIR)/bin/$(LFS_TGT)-ld
 gcc1 gcc2: gcc_src/gmp gcc_src/mpc gcc_src/mpfr
@@ -46,6 +55,9 @@ gcc_src/mpfr: $(MPFR_ARCHIVE) gcc_src
 gcc_src_fpp/gmp: $(GMP_ARCHIVE) gcc_src_fpp
 gcc_src_fpp/mpc: $(MPC_ARCHIVE) gcc_src_fpp
 gcc_src_fpp/mpfr: $(MPFR_ARCHIVE) gcc_src_fpp
+
+$(LINUX_ARCHIVE):
+	wget -c $(LINUX_MIRROR)
 
 $(BINUTILS_ARCHIVE):
 	wget -c $(BINUTILS_MIRROR)
@@ -127,38 +139,14 @@ gcc%:
 
 	$(MAKE) -C $@
 
-#	echo "[*] Installing"
-#	make $MAKEFLAGS install || exit 1
-#
+	$(MAKE) -C $@ install
+
 	#pass2
 #	ln -sv gcc $FINAL_PATH/bin/cc
 #
-#	ln -sv libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
-#
-#install_linux_headers () {
-#	echo "[*] installing linux headers"
-#
-#	if [ ! -f linux-3.8.1.tar.xz ]; then
-#		wget http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz || exit 1
-#	fi
-#	if [ -d linux-3.8.1 ]; then
-#		rm -Rf linux-3.8.1
-#	fi
-#	tar -xf linux-3.8.1.tar.xz || exit 1
-#	if [ ! $KEEP_ARCHIVES ]; then
-#		rm linux-3.8.1.tar.xz
-#	fi
-#	cd linux-3.8.1
-#	make mrproper || exit 1
-#	make headers_check || exit 1
-#	make INSTALL_HDR_PATH=dest headers_install
-#	cp -rv dest/include/* $FINAL_PATH/include
-#	cd ..
-#	if [ ! $DEBUG ]; then
-#		rm -Rf linux-3.8.1
-#	fi
-#}
-#
+	echo '$@' >> tst.txt
+	echo `$LFS_TGT-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'` >> tst.txt
+	ln -sv libgcc.a `$LFS_TGT-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 #libc_setup () {
 #	if [ $FPPROTECT_FLAGS ]; then
 #		GLIBC_FOLDER=glibc

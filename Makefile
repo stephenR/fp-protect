@@ -1,4 +1,4 @@
-SHELL = /bin/sh
+SHELL = /bin/bash
 
 #TODO PHONY
 #TODO temporary folder for gcc1

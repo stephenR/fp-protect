@@ -93,7 +93,7 @@ binutils_build: binutils_src $(DESTDIR)
 	cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror
 	$(MAKE) -C $@
 
-define gcc_src =
+define gcc_src
 gcc_src$(findstring _fpp,$@)
 endef
 

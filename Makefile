@@ -45,6 +45,9 @@ gcc1 gcc1_fpp: $(DESTDIR)/bin/$(LFS_TGT)-ld
 gcc1 gcc2: gcc_src/gmp gcc_src/mpc gcc_src/mpfr
 gcc1_fpp gcc2_fpp: gcc_src_fpp/gmp gcc_src_fpp/mpc gcc_src_fpp/mpfr
 gcc2 gcc2_fpp: gcc2% : libc1%
+libc1 libc2: libc_src gcc
+libc1_fpp libc2_fpp: libc_src_fpp
+libc1 libc1_fpp libc2 libc2_fpp: libc%: gcc% $(DESTDIR)/include
 
 gcc_src/gmp: $(GMP_ARCHIVE) gcc_src
 gcc_src/mpc: $(MPC_ARCHIVE) gcc_src
@@ -154,7 +157,7 @@ libc_src libc_src_fpp:
 		cd $@ && git checkout 043c748; \
 	fi
 
-libc%: libc_src% gcc% $(DESTDIR)/include
+libc%:
 	mkdir $@
 
 	cd $@ && if [[ "$@" == *"1"* ]]; then \

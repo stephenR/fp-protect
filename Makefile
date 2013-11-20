@@ -6,6 +6,7 @@ SHELL = /bin/bash
 DESTDIR=/tools
 LFS_TGT=x86_64-lfs-linux-gnu
 LFS=$(HOME)/workspace/fpp
+PATH:=$(DESTDIR)/bin:$(PATH)
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
 BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))

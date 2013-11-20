@@ -18,8 +18,8 @@ MPFR_MIRROR=http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz
 MPFR_ARCHIVE=$(notdir $(MPFR_MIRROR))
 LINUX_MIRROR=http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz
 LINUX_ARCHIVE=$(notdir $(LINUX_MIRROR))
-#GCC_ARCHIVES=$(GMP_ARCHIVE) $(MPC_ARCHIVE) $(MPFR_ARCHIVE)
-#ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES)
+GCC_ARCHIVES=$(GMP_ARCHIVE) $(MPC_ARCHIVE) $(MPFR_ARCHIVE)
+ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES)
 
 .PHONY: all
 all: nginx_fpp
@@ -176,6 +176,16 @@ libc%:
 	$(DESTDIR)/bin/$(LFS_TGT)-gcc dummy.c
 	readelf -l a.out | grep ": $(DESTDIR)" || exit 1
 	rm -v dummy.c a.out
+
+.PHONY: clean
+clean:
+	- rm $(ALL_ARCHIVES)
+	- rm -Rf binutils_build binutils_src
+	- rm -Rf gcc1_fpp gcc2_fpp gcc_src_fpp
+	- rm -Rf gcc1 gcc2 gcc_src
+	- rm -Rf libc1_fpp libc2_fpp libc_src_fpp
+	- rm -Rf libc1 libc2 libc_src
+	- rm -Rf linux_src
 
 #build_nginx () {
 #	echo "[*] nginx build process started"

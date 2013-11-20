@@ -100,10 +100,7 @@ endef
 gcc_src gcc_src_fpp:
 	if [[ "$@" == *"fpp"* ]]; then \
 		git clone git://zero-entropy.de/gcc.git $@ && \
-		cd $@ && \
-		git remote update && \
-		git fetch && \
-		git checkout -b fpprotect origin/fpprotect_gimple \
+		cd $@ && git checkout -b fpprotect origin/fpprotect_gimple \
 	else \
 		git clone git://gcc.gnu.org/git/gcc.git $@ && \
 		cd $@ && git checkout 31d89c5; \

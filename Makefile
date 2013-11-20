@@ -2,6 +2,7 @@ SHELL = /bin/bash
 
 #TODO PHONY
 #TODO temporary folder for gcc1
+#TODO programs needed? (libc2)
 DESTDIR=/tools
 LFS_TGT=x86_64-lfs-linux-gnu
 LFS=$(HOME)/workspace/fpp
@@ -29,10 +30,6 @@ install: all
 .PHONY: nginx_fpp nginx
 nginx_fpp nginx: nginx% : libc2%
 	@echo $@
-
-libc%: gcc% $(DESTDIR)/include
-	$(error not yet implemented)
-
 
 $(DESTDIR)/include: linux_src
 	$(MAKE) -C $< mrproper
@@ -147,110 +144,35 @@ gcc%:
 	echo '$@' >> tst.txt
 	echo `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'` >> tst.txt
 	ln -sv libgcc.a `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
-#libc_setup () {
-#	if [ $FPPROTECT_FLAGS ]; then
-#		GLIBC_FOLDER=glibc
-#	else
-#		GLIBC_FOLDER=glibc-nofpp
-#	fi
-#
-#	echo "[*] Checking out / updating fpp libc"
-#	if [ ! -d $GLIBC_FOLDER ]; then
-#		if [ $FPPROTECT_FLAGS ]; then
-#			git clone git://zero-entropy.de/glibc.git $GLIBC_FOLDER || exit 1
-#		else
-#			git clone git://sourceware.org/git/glibc.git $GLIBC_FOLDER || exit 1
-#		fi
-#		cd $GLIBC_FOLDER
-#		if [ $FPPROTECT_FLAGS ]; then
-#			git checkout -b fpp origin/fpp || exit 1
-#		else
-#			git checkout 043c748 || exit 1
-#		fi
-#		cd ..
-#	fi
-#
-#	cd $GLIBC_FOLDER
-#	if [ $FPPROTECT_FLAGS ]; then
-#		git pull origin fpp
-#	fi
-#
-#	cd ..
-#
-#	if [ -d glibc-build ]; then
-#		echo "[*] removing glibc build directory"
-#		rm -Rf glibc-build
-#	fi
-#
-#	mkdir glibc-build
-#	cd glibc-build
-#}
-#
-#build_libc_pass_1 () {
-#	echo "[*] libc pass 1 build process started"
-#
-#	libc_setup
-#
-#	echo "build-programs=no" > configparms
-#
-#	echo "[*] Configuring"
-#	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --host=$LFS_TGT --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-pipe -O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb"  || exit 1
-#
-#	echo "[*] Compiling"
-#	make $MAKEFLAGS || exit 1
-#
-#	echo "[*] Installing"
-#	make $MAKEFLAGS install || exit 1
-#
-#	cd ..
-#
-#	echo "[*] Checking compiler output"
-#	echo 'main(){}' > dummy.c
-#	$LFS_TGT-gcc dummy.c
-#	readelf -l a.out | grep ": $FINAL_PATH" || exit 1
-#	rm -v dummy.c a.out
-#
-#	if [ ! $DEBUG ]; then
-#		echo "[*] removing libc build directory"
-#		rm -Rf glibc-build
-#	fi
-#
-#	echo "[*] glibc pass 1 build process finished"
-#}
-#
-#build_libc_pass_2 () {
-#	echo "[*] libc pass 2 build process started"
-#
-#	libc_setup
-#
-#	#TODO programs needed?
-#	#echo "build-programs=no" > configparms
-#
-#	echo "[*] Configuring"
-#	../$GLIBC_FOLDER/configure --prefix=$FINAL_PATH --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-pipe -O3 -ggdb $FPPROTECT_FLAGS" LDFLAGS="-ggdb" || exit 1
-#
-#	echo "[*] Compiling"
-#	make $MAKEFLAGS || exit 1
-#
-#	echo "[*] Installing"
-#	make $MAKEFLAGS install || exit 1
-#
-#	cd ..
-#
-#	echo "[*] Checking compiler output"
-#	echo 'main(){}' > dummy.c
-#	cc dummy.c || exit 1
-#	readelf -l a.out | grep ": $FINAL_PATH" | exit 1
-#	rm dummy.c a.out
-#
-#	if [ ! $DEBUG ]; then
-#		echo "[*] removing libc build directory"
-#		rm -Rf glibc-build
-#	fi
-#
-#	echo "[*] glibc pass 2 build process finished"
-#}
-#
+
+libc_src libc_src_fpp:
+	if [[ "$@" == *"fpp"* ]]; then \
+		git clone git://zero-entropy.de/glibc.git $@ && \
+		cd $@ && git checkout -b fpp origin/fpp; \
+	else \
+		git clone git://sourceware.org/git/glibc.git $@ && \
+		cd $@ && git checkout 043c748; \
+	fi
+
+libc%: libc_src% gcc% $(DESTDIR)/include
+	mkdir $@
+
+	cd $@ && if [[ "$@" == *"1"* ]]; then \
+		echo "build-programs=no" > configparms && \
+		../$</configure --prefix=$(DESTDIR) --host=$(LFS_TGT) --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$(DESTDIR)/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-pipe -O3 -ggdb -ffp-protect" LDFLAGS="-ggdb"; \
+	else \
+		../$</configure --prefix=$(DESTDIR) --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$FINAL_PATH/include CFLAGS="-pipe -O3 -ggdb -ffp-protect" LDFLAGS="-ggdb"; \
+	fi
+
+	$(MAKE) -C $@
+
+	$(MAKE) -C $@ install
+
+	echo 'main(){}' > dummy.c
+	$(DESTDIR)/bin/$(LFS_TGT)-gcc dummy.c
+	readelf -l a.out | grep ": $(DESTDIR)" || exit 1
+	rm -v dummy.c a.out
+
 #build_nginx () {
 #	echo "[*] nginx build process started"
 #

@@ -81,15 +81,22 @@ binutils_src: $(BINUTILS_ARCHIVE)
 	tar -xf $(BINUTILS_ARCHIVE)
 	mv $(basename $(basename $(BINUTILS_ARCHIVE))) $@
 
-$(DESTDIR):
-	mkdir -p $(LFS)$(DESTDIR)
+$(DESTDIR): $(LFS)$(DESTDIR)
 	sudo ln -sv $(LFS)$(DESTDIR) $(DESTDIR)
-	mkdir -v $(DESTDIR)/lib && ln -sv lib $(DESTDIR)/lib64
 
-$(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)
+$(LFS)$(DESTDIR):
+	mkdir -p $(LFS)$(DESTDIR)
+
+$(DESTDIR)/lib: $(DESTDIR)
+	mkdir -v $(DESTDIR)/lib
+
+$(DESTDIR)/lib64: $(DESTDIR) $(DESTDIR)/lib
+	ln -sv lib $(DESTDIR)/lib64
+
+$(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)/lib64
 	$(MAKE) -C binutils_build install
 
-binutils_build: binutils_src $(DESTDIR)
+binutils_build: binutils_src
 	mkdir $@
 	cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror
 	$(MAKE) -C $@

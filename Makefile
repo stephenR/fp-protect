@@ -150,7 +150,7 @@ gcc%:
 #
 	echo '$@' >> tst.txt
 	echo `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'` >> tst.txt
-	ln -sv libgcc.a `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
+	ln -sfnv libgcc.a `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
 libc_src libc_src_fpp:
 	if [[ "$@" == *"fpp"* ]]; then \

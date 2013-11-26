@@ -148,8 +148,6 @@ gcc%:
 	#pass2
 #	ln -sv gcc $FINAL_PATH/bin/cc
 #
-	echo '$@' >> tst.txt
-	echo `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'` >> tst.txt
 	ln -sfnv libgcc.a `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
 libc_src libc_src_fpp:

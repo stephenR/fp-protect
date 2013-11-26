@@ -181,7 +181,7 @@ libc%:
 
 	echo 'main(){}' > dummy.c
 	$(DESTDIR)/bin/$(LFS_TGT)-gcc dummy.c
-	readelf -l a.out | grep ": $(DESTDIR)" || exit 1
+	readelf -l a.out | grep ": $(DESTDIR)"
 	rm -v dummy.c a.out
 
 .PHONY: clean

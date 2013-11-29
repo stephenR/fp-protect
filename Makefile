@@ -158,6 +158,7 @@ libc_src libc_src_fpp:
 		git clone git://sourceware.org/git/glibc.git $@ && \
 		cd $@ && git checkout 043c748; \
 	fi
+	cd $@ && patch -p1 < ../gcc_hsep_vsep.patch
 
 libc%:
 	mkdir $@

@@ -179,13 +179,27 @@ libc%:
 	rm -v dummy.c a.out
 
 .PHONY: clean
-clean:
+clean: clean-archives clean-build clean-src
+
+.PHONY: clean-archives
+clean-archives:
 	- rm $(ALL_ARCHIVES)
-	- rm -Rf binutils_build binutils_src
-	- rm -Rf gcc1_fpp gcc2_fpp gcc_src_fpp
-	- rm -Rf gcc1 gcc2 gcc_src
-	- rm -Rf libc1_fpp libc2_fpp libc_src_fpp
-	- rm -Rf libc1 libc2 libc_src
+
+.PHONY: clean-build
+clean-build:
+	- rm -Rf binutils_build
+	- rm -Rf gcc1_fpp gcc2_fpp
+	- rm -Rf gcc1 gcc2
+	- rm -Rf libc1_fpp libc2_fpp
+	- rm -Rf libc1 libc2
+
+.PHONY: clean-src
+clean-src:
+	- rm -Rf binutils_src
+	- rm -Rf gcc_src_fpp
+	- rm -Rf gcc_src
+	- rm -Rf libc_src_fpp
+	- rm -Rf libc_src
 	- rm -Rf linux_src
 
 #build_nginx () {

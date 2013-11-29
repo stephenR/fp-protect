@@ -32,11 +32,13 @@ install: all
 nginx_fpp nginx: nginx% : libc2%
 	@echo $@
 
-$(DESTDIR)/include: linux_src
-	$(MAKE) -C $< mrproper
-	$(MAKE) -C $< headers_check
-	$(MAKE) -C $< INSTALL_HDR_PATH=dest headers_install
+$(DESTDIR)/include: linux_build
 	cp -rv $</dest/include $(DESTDIR)/include
+
+linux_build: linux_src
+	$(MAKE) -C $@ -f ../$</Makefile mrproper
+	$(MAKE) -C $@ -f ../$</Makefile headers_check
+	$(MAKE) -C $@ -f ../$</Makefile INSTALL_HDR_PATH=dest headers_install
 
 linux_src: $(LINUX_ARCHIVE)
 	tar -xf $<

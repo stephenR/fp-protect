@@ -36,9 +36,10 @@ $(DESTDIR)/include: linux_build
 	cp -rv $</dest/include $(DESTDIR)/include
 
 linux_build: linux_src
-	$(MAKE) -C $@ -f ../$</Makefile mrproper
-	$(MAKE) -C $@ -f ../$</Makefile headers_check
-	$(MAKE) -C $@ -f ../$</Makefile INSTALL_HDR_PATH=dest headers_install
+	mkdir $@
+	$(MAKE) -C $< O=../$@ mrproper
+	$(MAKE) -C $< O=../$@ headers_check
+	$(MAKE) -C $< O=../$@ INSTALL_HDR_PATH=dest headers_install
 
 linux_src: $(LINUX_ARCHIVE)
 	tar -xf $<

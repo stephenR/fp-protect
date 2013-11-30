@@ -33,7 +33,7 @@ nginx_fpp nginx: nginx% : libc2%
 	@echo $@
 
 $(DESTDIR)/include: linux_build
-	cp -rv $</dest/include $(DESTDIR)/include
+	cp -rv $</dest/include $(DESTDIR)/
 
 linux_build: linux_src
 	mkdir $@

@@ -157,9 +157,10 @@ gcc%:
 
 	$(MAKE) -C $@ install
 
-	#pass2
-#	ln -sv gcc $FINAL_PATH/bin/cc
-#
+	if [[ "$@" == *"2"* ]]; then \
+		ln -sfnv gcc $(DESTDIR)/bin/cc; \
+	fi
+
 	ln -sfnv libgcc.a `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
 libc_src libc_src_fpp:

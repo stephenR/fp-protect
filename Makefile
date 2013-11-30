@@ -3,6 +3,8 @@ SHELL = /bin/bash
 #TODO PHONY
 #TODO temporary folder for gcc1
 #TODO programs needed? (libc2)
+#TODO remove fpp/nonfpp build targets
+# -> use a variable instead so it can be called like FPP="no" make
 DESTDIR=/tools
 LFS_TGT=x86_64-lfs-linux-gnu
 LFS=$(HOME)/workspace/fpp

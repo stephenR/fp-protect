@@ -31,8 +31,8 @@ all: nginx_fpp
 nginx_fpp nginx: nginx% : nginx_src libc2%
 	cp -R $< $@
 	cd $@ && CFLAGS="-ffp-protect -ggdb -O3 -pipe" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$(DESTDIR)
-	$(MAKE) -C $<
-	$(MAKE) -C $< install
+	$(MAKE) -C $@
+	$(MAKE) -C $@ install
 
 $(DESTDIR)/include: linux_build
 	cp -rv $</dest/include $(DESTDIR)/

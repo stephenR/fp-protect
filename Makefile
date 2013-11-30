@@ -18,8 +18,10 @@ MPFR_MIRROR=http://www.mpfr.org/mpfr-3.1.1/mpfr-3.1.1.tar.xz
 MPFR_ARCHIVE=$(notdir $(MPFR_MIRROR))
 LINUX_MIRROR=http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.8.1.tar.xz
 LINUX_ARCHIVE=$(notdir $(LINUX_MIRROR))
+NGINX_MIRROR=http://nginx.org/download/nginx-1.4.1.tar.gz
+NGINX_ARCHIVE=$(notdir $(NGINX_MIRROR))
 GCC_ARCHIVES=$(GMP_ARCHIVE) $(MPC_ARCHIVE) $(MPFR_ARCHIVE)
-ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES) $(LINUX_ARCHIVE)
+ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES) $(LINUX_ARCHIVE) $(NGINX_ARCHIVE)
 
 .PHONY: all
 all: nginx_fpp
@@ -28,9 +30,11 @@ all: nginx_fpp
 install: all
 	$(error install target not yet implemented)
 
-.PHONY: nginx_fpp nginx
-nginx_fpp nginx: nginx% : libc2%
-	@echo $@
+nginx_fpp nginx: nginx% : nginx_src libc2%
+	cp -R $< $@
+	cd $@ && CFLAGS="-ffp-protect -ggdb -O3 -pipe" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$(DESTDIR)
+	$(MAKE) -C $<
+	$(MAKE) -C $< install
 
 $(DESTDIR)/include: linux_build
 	cp -rv $</dest/include $(DESTDIR)/
@@ -42,6 +46,10 @@ linux_build: linux_src
 	$(MAKE) -C $< O=../$@ INSTALL_HDR_PATH=dest headers_install
 
 linux_src: $(LINUX_ARCHIVE)
+	tar -xf $<
+	mv $(basename $(basename $<)) $@
+
+nginx_src: $(NGINX_ARCHIVE)
 	tar -xf $<
 	mv $(basename $(basename $<)) $@
 
@@ -62,6 +70,9 @@ gcc_src_fpp/mpfr: $(MPFR_ARCHIVE) gcc_src_fpp
 
 $(LINUX_ARCHIVE):
 	wget -c $(LINUX_MIRROR)
+
+$(NGINX_ARCHIVE):
+	wget -c $(NGINX_MIRROR)
 
 $(BINUTILS_ARCHIVE):
 	wget -c $(BINUTILS_MIRROR)
@@ -197,6 +208,7 @@ clean-build:
 	- rm -Rf libc1_fpp libc2_fpp
 	- rm -Rf libc1 libc2
 	- rm -Rf linux_build
+	- rm -Rf nginx_fpp nginx
 
 .PHONY: clean-src
 clean-src:
@@ -206,71 +218,5 @@ clean-src:
 	- rm -Rf libc_src_fpp
 	- rm -Rf libc_src
 	- rm -Rf linux_src
+	- rm -Rf nginx_src
 
-#build_nginx () {
-#	echo "[*] nginx build process started"
-#
-#	if [ ! -f nginx-1.4.1.tar.gz ]; then
-#		echo "[*] Downloading nginx"
-#		wget http://nginx.org/download/nginx-1.4.1.tar.gz || exit 1
-#	fi
-#	if [ -d nginx-1.4.1 ]; then
-#		rm -Rf nginx-1.4.1
-#	fi
-#
-#	tar -xf nginx-1.4.1.tar.gz || exit 1
-#	if [ ! $KEEP_ARCHIVES ]; then
-#		rm nginx-1.4.1.tar.gz
-#	fi
-#
-#	cd nginx-1.4.1
-#
-#	echo "[*] Configuring"
-#	CFLAGS="$FPPROTECT_FLAGS -ggdb -O3 -pipe" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$FINAL_PATH || exit 1
-#
-#	echo "[*] Compiling"
-#	make $MAKEFLAGS || exit 1
-#
-#	echo "[*] Installing"
-#	make $MAKEFLAGS install || exit 1
-#
-#	cd ..
-#
-#	echo "[*] nginx build process finished"
-#	if [ ! $DEBUG ]; then
-#		rm -Rf nginx-1.4.1
-#	fi
-#}
-#
-#DATEFILE="$(date '+%C%y-%m-%d-%H-%M').log"
-#
-#echo "Start" >> $DATEFILE
-#date >> $DATEFILE
-#setup_env
-#echo "dirs" >> $DATEFILE
-#date >> $DATEFILE
-#setup_dirs
-#echo "binutils" >> $DATEFILE
-#date >> $DATEFILE
-#build_binutils_pass_1
-#echo "gcc1" >> $DATEFILE
-#date >> $DATEFILE
-#build_gcc_pass_1
-#echo "linux headers" >> $DATEFILE
-#date >> $DATEFILE
-#install_linux_headers
-#echo "libc1" >> $DATEFILE
-#date >> $DATEFILE
-#build_libc_pass_1
-#echo "gcc2" >> $DATEFILE
-#date >> $DATEFILE
-#build_gcc_pass_2
-#echo "libc2" >> $DATEFILE
-#date >> $DATEFILE
-#build_libc_pass_2
-#echo "nginx" >> $DATEFILE
-#date >> $DATEFILE
-#build_nginx
-#echo "Finished" >> $DATEFILE
-#date >> $DATEFILE
-#

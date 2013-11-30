@@ -26,10 +26,6 @@ ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES) $(LINUX_ARCHIVE) $(NGINX_ARCHIV
 .PHONY: all
 all: nginx_fpp
 
-.PHONY: install
-install: all
-	$(error install target not yet implemented)
-
 nginx_fpp nginx: nginx% : nginx_src libc2%
 	cp -R $< $@
 	cd $@ && CFLAGS="-ffp-protect -ggdb -O3 -pipe" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$(DESTDIR)

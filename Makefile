@@ -196,6 +196,7 @@ clean-build:
 	- rm -Rf gcc1 gcc2
 	- rm -Rf libc1_fpp libc2_fpp
 	- rm -Rf libc1 libc2
+	- rm -Rf linux_build
 
 .PHONY: clean-src
 clean-src:

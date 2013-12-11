@@ -94,7 +94,7 @@ binutils_src: $(BINUTILS_ARCHIVE)
 	mv $(basename $(basename $(BINUTILS_ARCHIVE))) $@
 
 $(DESTDIR): $(LFS)$(DESTDIR)
-	sudo ln -sv $(LFS)$(DESTDIR) $(DESTDIR)
+	ln -sfnv $(LFS)$(DESTDIR) $(DESTDIR)
 
 $(LFS)$(DESTDIR):
 	mkdir -p $(LFS)$(DESTDIR)
@@ -103,7 +103,7 @@ $(DESTDIR)/lib: $(DESTDIR)
 	mkdir -v $(DESTDIR)/lib
 
 $(DESTDIR)/lib64: $(DESTDIR) $(DESTDIR)/lib
-	ln -sv lib $(DESTDIR)/lib64
+	ln -sfnv lib $(DESTDIR)/lib64
 
 $(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)/lib64
 	$(MAKE) -C binutils_build install

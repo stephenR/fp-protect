@@ -5,9 +5,9 @@ SHELL = /bin/bash
 #TODO programs needed? (libc2)
 #TODO remove fpp/nonfpp build targets
 # -> use a variable instead so it can be called like FPP="no" make
-DESTDIR=/tools
+DESTDIR=$(HOME)/workspace/fpp
 LFS_TGT=x86_64-lfs-linux-gnu
-LFS=$(HOME)/workspace/fpp
+LFS=$(HOME)/workspace/fpp-link
 PATH:=$(DESTDIR)/bin:$(PATH)
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2

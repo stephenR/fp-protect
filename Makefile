@@ -129,7 +129,7 @@ gcc_src gcc_src_fpp:
 			cd $@ && git checkout 31d89c5; \
 		fi; \
 	fi
-	cd $(gcc_src) && for file in $$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
+	cd $@ && for file in $$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
 		cp -uv $$file{,.orig}; \
 		sed -e "s@/lib\(64\)\?\(32\)\?/ld@$(DESTDIR)&@g" \
 			-e "s@/usr@$(DESTDIR)@g" $$file.orig > $$file; \

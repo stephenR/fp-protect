@@ -7,7 +7,7 @@ SHELL = /bin/bash
 # -> use a variable instead so it can be called like FPP="no" make
 DESTDIR=$(HOME)/workspace/fpp
 LFS_TGT=x86_64-lfs-linux-gnu
-LFS=$(HOME)/workspace/fpp-link
+LFS=$(HOME)/workspace/fpp-tmp$(DESTDIR)
 PATH:=$(DESTDIR)/bin:$(PATH)
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2

@@ -146,6 +146,9 @@ gcc%:
 		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(LFS_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
 	fi
 
+	if [ -d $@ ]; then \
+		then rm -R $@; \
+	fi
 	mkdir $@
 
 	if [[ "$@" == *"1"* ]]; then \

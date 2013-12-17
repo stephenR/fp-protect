@@ -7,7 +7,6 @@ SHELL = /bin/bash
 # -> use a variable instead so it can be called like FPP="no" make
 DESTDIR=$(PWD)/install
 TARGET=x86_64-fpp-linux-gnu
-LFS=$(PWD)/fpp-tmp$(DESTDIR)
 PATH:=$(DESTDIR)/bin:$(PATH)
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
@@ -95,12 +94,9 @@ binutils_src: $(BINUTILS_ARCHIVE)
 	tar -xf $(BINUTILS_ARCHIVE)
 	mv $(basename $(basename $(BINUTILS_ARCHIVE))) $@
 
-$(DESTDIR): $(LFS)
-	ln -sfnv $(LFS) $(DESTDIR)
-
 $(DESTDIR)/lib: $(DESTDIR)
 
-$(LFS) $(DESTDIR)/lib:
+$(DESTDIR) $(DESTDIR)/lib:
 	if [ ! -d $@ ]; then \
 		mkdir -p $@; \
 	fi
@@ -114,7 +110,7 @@ $(DESTDIR)/bin/$(TARGET)-ld: binutils_build $(DESTDIR)/lib64
 binutils_build: binutils_src
 	if [ ! -d $@ ]; then \
 		mkdir $@ && \
-		cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(TARGET) --disable-nls --disable-werror; \
+		cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-lib-path=$(DESTDIR)/lib --target=$(TARGET) --disable-nls --disable-werror; \
 	fi
 	$(MAKE) -C $@
 
@@ -156,9 +152,9 @@ gcc%:
 	mkdir $@
 
 	if [[ "$@" == *"1"* ]]; then \
-		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe' --target=$(TARGET) --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-newlib --without-headers --with-local-prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs --disable-libatomic; \
+		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe' --target=$(TARGET) --prefix=$(DESTDIR) --with-newlib --without-headers --with-local-prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs --disable-libatomic; \
 	else \
-		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" --prefix=$(DESTDIR) --with-local-prefix=$(LFS) --with-native-system-header-dir=$(DESTDIR)/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs; \
+		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" --prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs; \
 	fi
 
 	$(MAKE) -C $@

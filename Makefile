@@ -99,7 +99,9 @@ $(DESTDIR): $(LFS)
 $(DESTDIR)/lib: $(DESTDIR)
 
 $(LFS) $(DESTDIR)/lib:
-	mkdir -p $@
+	if [ ! -d $@ ]; then \
+		mkdir -p $@; \
+	fi
 
 $(DESTDIR)/lib64: $(DESTDIR) $(DESTDIR)/lib
 	ln -sfnv lib $(DESTDIR)/lib64

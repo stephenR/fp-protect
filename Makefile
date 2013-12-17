@@ -112,8 +112,10 @@ $(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)/lib64
 	$(MAKE) -C binutils_build install
 
 binutils_build: binutils_src
-	mkdir $@
-	cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror
+	if [ ! -d ]; then \
+		mkdir $@ && \
+		cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror; \
+	fi
 	$(MAKE) -C $@
 
 define gcc_src

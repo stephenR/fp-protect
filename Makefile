@@ -122,11 +122,10 @@ gcc_src gcc_src_fpp:
 	if [ -d $@ ]; then \
 		cd $@ && git clean -fdx && git reset --hard && git pull; \
 	else \
+		git clone git://zero-entropy.de/gcc.git $@ && \
 		if [[ "$@" == *"fpp"* ]]; then \
-				git clone git://zero-entropy.de/gcc.git $@ && \
-				cd $@ && git checkout -b fpprotect origin/fpprotect_gimple; \
+			cd $@ && git checkout -b fpprotect origin/fpprotect_gimple; \
 		else \
-			git clone git://gcc.gnu.org/git/gcc.git $@ && \
 			cd $@ && git checkout 31d89c5; \
 		fi; \
 	fi

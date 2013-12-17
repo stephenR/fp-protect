@@ -93,11 +93,11 @@ binutils_src: $(BINUTILS_ARCHIVE)
 	tar -xf $(BINUTILS_ARCHIVE)
 	mv $(basename $(basename $(BINUTILS_ARCHIVE))) $@
 
-$(DESTDIR): $(LFS)$(DESTDIR)
-	ln -sfnv $(LFS)$(DESTDIR) $(DESTDIR)
+$(DESTDIR): $(LFS)
+	ln -sfnv $(LFS) $(DESTDIR)
 
-$(LFS)$(DESTDIR):
-	mkdir -p $(LFS)$(DESTDIR)
+$(LFS):
+	mkdir -p $(LFS)
 
 $(DESTDIR)/lib: $(DESTDIR)
 	mkdir -v $(DESTDIR)/lib

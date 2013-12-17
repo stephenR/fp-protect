@@ -119,12 +119,16 @@ gcc_src$(findstring _fpp,$@)
 endef
 
 gcc_src gcc_src_fpp:
-	if [[ "$@" == *"fpp"* ]]; then \
-		git clone git://zero-entropy.de/gcc.git $@ && \
-		cd $@ && git checkout -b fpprotect origin/fpprotect_gimple; \
+	if [ -d $@ ]; then \
+		cd $@ && git clean -fdx && git reset --hard && git pull; \
 	else \
-		git clone git://gcc.gnu.org/git/gcc.git $@ && \
-		cd $@ && git checkout 31d89c5; \
+		if [[ "$@" == *"fpp"* ]]; then \
+				git clone git://zero-entropy.de/gcc.git $@ && \
+				cd $@ && git checkout -b fpprotect origin/fpprotect_gimple; \
+		else \
+			git clone git://gcc.gnu.org/git/gcc.git $@ && \
+			cd $@ && git checkout 31d89c5; \
+		fi; \
 	fi
 	cd $(gcc_src) && for file in $$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
 		cp -uv $$file{,.orig}; \

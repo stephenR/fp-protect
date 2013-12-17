@@ -151,7 +151,7 @@ gcc%:
 	fi
 
 	if [ -d $@ ]; then \
-		then rm -R $@; \
+		rm -R $@; \
 	fi
 	mkdir $@
 

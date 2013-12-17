@@ -38,7 +38,7 @@ $(DESTDIR)/include: linux_build
 	cp -rv $</dest/include $(DESTDIR)/
 
 linux_build: linux_src
-	if [ ! -d ]; then \
+	if [ ! -d $@ ]; then \
 		mkdir $@; \
 	fi
 	$(MAKE) -C $< O=../$@ mrproper
@@ -112,7 +112,7 @@ $(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)/lib64
 	$(MAKE) -C binutils_build install
 
 binutils_build: binutils_src
-	if [ ! -d ]; then \
+	if [ ! -d $@ ]; then \
 		mkdir $@ && \
 		cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror; \
 	fi

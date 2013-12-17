@@ -182,6 +182,9 @@ libc_src libc_src_fpp:
 	cd $@ && patch -p1 < ../gcc_hsep_vsep.patch
 
 libc%:
+	if [ -d $@ ]; then \
+		rm -R $@; \
+	fi
 	mkdir $@
 
 	cd $@ && if [[ "$@" == *"1"* ]]; then \

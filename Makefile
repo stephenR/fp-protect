@@ -38,7 +38,9 @@ $(DESTDIR)/include: linux_build
 	cp -rv $</dest/include $(DESTDIR)/
 
 linux_build: linux_src
-	mkdir $@
+	if [ ! -d ]; then \
+		mkdir $@; \
+	fi
 	$(MAKE) -C $< O=../$@ mrproper
 	$(MAKE) -C $< O=../$@ headers_check
 	$(MAKE) -C $< O=../$@ INSTALL_HDR_PATH=dest headers_install

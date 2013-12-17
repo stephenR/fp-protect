@@ -96,11 +96,10 @@ binutils_src: $(BINUTILS_ARCHIVE)
 $(DESTDIR): $(LFS)
 	ln -sfnv $(LFS) $(DESTDIR)
 
-$(LFS):
-	mkdir -p $(LFS)
-
 $(DESTDIR)/lib: $(DESTDIR)
-	mkdir -v $(DESTDIR)/lib
+
+$(LFS) $(DESTDIR)/lib:
+	mkdir -p $@
 
 $(DESTDIR)/lib64: $(DESTDIR) $(DESTDIR)/lib
 	ln -sfnv lib $(DESTDIR)/lib64

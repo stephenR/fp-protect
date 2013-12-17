@@ -138,9 +138,6 @@ gcc_src gcc_src_fpp:
 	done
 
 gcc%:
-#revert the src folder
-#	cd $(gcc_src) && git clean -fdx && git reset --hard
-#
 	cd $(gcc_src) && git checkout -- gcc/configure
 	cd $(gcc_src) && sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
 	if [[ "$@" == *"1"* ]]; then \

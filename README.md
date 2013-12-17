@@ -2,20 +2,24 @@ fp-protect
 ==========
 
 Function pointer protection is an experimental compiler modification
-for the C compiler of GCC with the intention to protect function
+for the C compiler of [GCC](http://gcc.gnu.org/) with the intention to protect function
 pointers against malicious overwrites through memory corruption
 vulnerabilities. The approach should be fully compliant with the C99
 standard. However, in some cases of implementation defined behaviour,
 the protection scheme will break some programs, specifically
 just-in-time compilers.
+
 A proper README will follow but for now, let me just paste my e-mail
 which I wrote to the gcc and oss-security mailing lists, in order to
 outline the project (more information can be found in my [master's thesis](http://zero-entropy.de/fpp.pdf).
+
 Note that the current implementation is in an early stage and will only
 support GCC on Linux x86_64.
 
 E-mail
-======
+------
+<pre>
+Hi everyone,
 
 I'd like to present you my master's thesis "Malicious Code Execution
 Prevention through Function Pointer Protection" [0] and its
@@ -119,7 +123,13 @@ manual annotation in the source code. But it could be used for example,
 to assign a group to the internally used dynamic linking routines and
 prevent that they're abused by an attacker.
 
+Feedback and criticism is very welcome, also if anything is unclear feel
+free to ask.
+
+Regards,
+Stephen
 
 [0] http://zero-entropy.de/fpp.pdf
 [1] git://zero-entropy.de/fpp_autobuild.git
 [2] http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2013-0170
+</pre>

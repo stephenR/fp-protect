@@ -5,26 +5,26 @@ SHELL = /bin/bash
 #TODO programs needed? (libc2)
 #TODO remove fpp/nonfpp build targets
 # -> use a variable instead so it can be called like FPP="no" make
-DESTDIR=$(PWD)/install
-LFS_TGT=x86_64-lfs-linux-gnu
-LFS=$(PWD)/fpp-tmp$(DESTDIR)
-PATH:=$(DESTDIR)/bin:$(PATH)
+FPP_DESTDIR=$(PWD)/install
+FPP_TGT=x86_64-lfs-linux-gnu
+FPP_SYSROOT=$(PWD)/fpp-tmp$(FPP_DESTDIR)
+PATH:=$(FPP_DESTDIR)/bin:$(PATH)
 
 USER_CFLAGS=-pipe -ggdb -O0
 
 GCC_CONFIGURE_OPTS=CFLAGS='$(USER_CFLAGS)' \
-	--prefix=$(DESTDIR) \
-	--with-native-system-header-dir=$(DESTDIR)/include \
+	--prefix=$(FPP_DESTDIR) \
+	--with-native-system-header-dir=$(FPP_DESTDIR)/include \
 	--disable-multilib \
 	--disable-libgomp \
 	--with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src \
 	--with-mpfr-lib=$$PWD/mpfr/src/.libs \
 	--enable-languages=c
-GCC1_CONFIGURE_OPTS=--target=$(LFS_TGT) \
-	--with-sysroot=$(LFS) \
+GCC1_CONFIGURE_OPTS=--target=$(FPP_TGT) \
+	--with-sysroot=$(FPP_SYSROOT) \
 	--with-newlib \
 	--without-headers \
-	--with-local-prefix=$(DESTDIR) \
+	--with-local-prefix=$(FPP_DESTDIR) \
 	--disable-nls \
 	--disable-shared \
 	--disable-decimal-float \
@@ -35,7 +35,7 @@ GCC1_CONFIGURE_OPTS=--target=$(LFS_TGT) \
 	--disable-libatomic
 GCC2_CONFIGURE_OPTS=CXXFLAGS='$(USER_CFLAGS)' \
 	CFLAGS_FOR_TARGET='$(USER_CFLAGS) -ffp-protect' \
-	--with-local-prefix=$(LFS) \
+	--with-local-prefix=$(FPP_SYSROOT) \
 	--enable-clocale=gnu \
 	--enable-shared \
 	--enable-threads=posix \
@@ -44,20 +44,20 @@ GCC2_CONFIGURE_OPTS=CXXFLAGS='$(USER_CFLAGS)' \
 	--disable-bootstrap
 NGINX_CONFIGURE_OPTS=--without-http_rewrite_module \
 	--without-http_gzip_module \
-	--prefix=$(DESTDIR)
+	--prefix=$(FPP_DESTDIR)
 BINUTILS_CONFIGURE_OPTS=CFLAGS='$(USER_CFLAGS)' \
-	--prefix=$(DESTDIR) \
-	--with-sysroot=$(LFS) \
-	--with-lib-path=$(DESTDIR)/lib \
-	--target=$(LFS_TGT) \
+	--prefix=$(FPP_DESTDIR) \
+	--with-sysroot=$(FPP_SYSROOT) \
+	--with-lib-path=$(FPP_DESTDIR)/lib \
+	--target=$(FPP_TGT) \
 	--disable-nls \
 	--disable-werror
-GLIBC_CONFIGURE_OPTS=--prefix=$(DESTDIR) \
-	--with-headers=$(DESTDIR)/include \
+GLIBC_CONFIGURE_OPTS=--prefix=$(FPP_DESTDIR) \
+	--with-headers=$(FPP_DESTDIR)/include \
 	--disable-profile \
 	--enable-kernel=2.6.25 \
 	CFLAGS='$(patsubst -O0,-O1,$(USER_CFLAGS)) -ffp-protect'
-GLIBC1_CONFIGURE_OPTS=--host=$(LFS_TGT) \
+GLIBC1_CONFIGURE_OPTS=--host=$(FPP_TGT) \
 	--build=x86_64-unknown-linux-gnu \
 	libc_cv_forced_unwind=yes \
 	libc_cv_ctors_header=yes \
@@ -89,8 +89,8 @@ nginx_fpp nginx: nginx% : nginx_src libc2%
 	$(MAKE) -C $@
 	$(MAKE) -C $@ install
 
-$(DESTDIR)/include: linux_build
-	cp -rv $</dest/include $(DESTDIR)/
+$(FPP_DESTDIR)/include: linux_build
+	cp -rv $</dest/include $(FPP_DESTDIR)/
 
 linux_build: linux_src
 	if [ ! -d $@ ]; then \
@@ -108,13 +108,13 @@ nginx_src: $(NGINX_ARCHIVE)
 	tar -xf $<
 	mv $(basename $(basename $<)) $@
 
-gcc1 gcc1_fpp: $(DESTDIR)/bin/$(LFS_TGT)-ld
+gcc1 gcc1_fpp: $(FPP_DESTDIR)/bin/$(FPP_TGT)-ld
 gcc1 gcc2: gcc_src/gmp gcc_src/mpc gcc_src/mpfr
 gcc1_fpp gcc2_fpp: gcc_src_fpp/gmp gcc_src_fpp/mpc gcc_src_fpp/mpfr
 gcc2 gcc2_fpp: gcc2% : libc1%
 libc1 libc2: libc_src gcc
 libc1_fpp libc2_fpp: libc_src_fpp
-libc1 libc1_fpp libc2 libc2_fpp: libc%: gcc% $(DESTDIR)/include
+libc1 libc1_fpp libc2 libc2_fpp: libc%: gcc% $(FPP_DESTDIR)/include
 
 gcc_src/gmp: $(GMP_ARCHIVE) gcc_src
 gcc_src/mpc: $(MPC_ARCHIVE) gcc_src
@@ -150,23 +150,23 @@ binutils_src: $(BINUTILS_ARCHIVE)
 	tar -xf $(BINUTILS_ARCHIVE)
 	mv $(basename $(basename $(BINUTILS_ARCHIVE))) $@
 
-$(DESTDIR): $(LFS)$(DESTDIR)
-	ln -sfnv $(LFS)$(DESTDIR) $(DESTDIR)
+$(FPP_DESTDIR): $(FPP_SYSROOT)$(FPP_DESTDIR)
+	ln -sfnv $(FPP_SYSROOT)$(FPP_DESTDIR) $(FPP_DESTDIR)
 
-$(LFS)$(DESTDIR):
-	mkdir -p $(LFS)$(DESTDIR)
+$(FPP_SYSROOT)$(FPP_DESTDIR):
+	mkdir -p $(FPP_SYSROOT)$(FPP_DESTDIR)
 
-$(DESTDIR)/lib: $(DESTDIR)
+$(FPP_DESTDIR)/lib: $(FPP_DESTDIR)
 
-$(DESTDIR)/lib:
+$(FPP_DESTDIR)/lib:
 	if [ ! -d $@ ]; then \
 		mkdir -p $@; \
 	fi
 
-$(DESTDIR)/lib64: $(DESTDIR) $(DESTDIR)/lib
-	ln -sfnv lib $(DESTDIR)/lib64
+$(FPP_DESTDIR)/lib64: $(FPP_DESTDIR) $(FPP_DESTDIR)/lib
+	ln -sfnv lib $(FPP_DESTDIR)/lib64
 
-$(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)/lib64
+$(FPP_DESTDIR)/bin/$(FPP_TGT)-ld: binutils_build $(FPP_DESTDIR)/lib64
 	$(MAKE) -C binutils_build install
 
 binutils_build: binutils_src
@@ -194,9 +194,9 @@ gcc_src gcc_src_fpp:
 	fi
 	cd $@ && for file in $$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
 		cp -uv $$file{,.orig}; \
-		sed -e "s@/lib\(64\)\?\(32\)\?/ld@$(DESTDIR)&@g" \
-			-e "s@/usr@$(DESTDIR)@g" $$file.orig > $$file; \
-		echo -e "\n#undef STANDARD_STARTFILE_PREFIX_1\n#undef STANDARD_STARTFILE_PREFIX_2\n#define STANDARD_STARTFILE_PREFIX_1 \"$(DESTDIR)/lib/\"\n#define STANDARD_STARTFILE_PREFIX_2 \"\"" >> $$file;\
+		sed -e "s@/lib\(64\)\?\(32\)\?/ld@$(FPP_DESTDIR)&@g" \
+			-e "s@/usr@$(FPP_DESTDIR)@g" $$file.orig > $$file; \
+		echo -e "\n#undef STANDARD_STARTFILE_PREFIX_1\n#undef STANDARD_STARTFILE_PREFIX_2\n#define STANDARD_STARTFILE_PREFIX_1 \"$(FPP_DESTDIR)/lib/\"\n#define STANDARD_STARTFILE_PREFIX_2 \"\"" >> $$file;\
 		touch $$file.orig;\
 	done
 
@@ -206,7 +206,7 @@ gcc%:
 	if [[ "$@" == *"1"* ]]; then \
 		cd $(gcc_src) && sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure; \
 	else \
-		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(LFS_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
+		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(FPP_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
 	fi
 
 	if [ -d $@ ]; then \
@@ -229,10 +229,10 @@ gcc%:
 	$(MAKE) -C $@ install
 
 	if [[ "$@" == *"2"* ]]; then \
-		ln -sfnv gcc $(DESTDIR)/bin/cc; \
+		ln -sfnv gcc $(FPP_DESTDIR)/bin/cc; \
 	fi
 
-	ln -sfnv libgcc.a `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
+	ln -sfnv libgcc.a `$(FPP_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
 libc_src libc_src_fpp:
 	if [[ "$@" == *"fpp"* ]]; then \
@@ -266,8 +266,8 @@ libc%:
 	$(MAKE) -C $@ install
 
 	echo 'main(){}' > dummy.c
-	$(DESTDIR)/bin/$(LFS_TGT)-gcc dummy.c
-	readelf -l a.out | grep ": $(DESTDIR)"
+	$(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc dummy.c
+	readelf -l a.out | grep ": $(FPP_DESTDIR)"
 	rm -v dummy.c a.out
 
 .PHONY: clean

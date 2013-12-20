@@ -8,7 +8,7 @@ SHELL = /bin/bash
 FPP_DESTDIR=$(PWD)/install
 FPP_TGT=x86_64-lfs-linux-gnu
 FPP_SYSROOT=$(PWD)/fpp-tmp$(FPP_DESTDIR)
-PATH:=$(FPP_DESTDIR)/bin:$(PATH)
+FPP_PATH:=$(FPP_DESTDIR)/bin:$(PATH)
 
 USER_CFLAGS=-pipe -ggdb -O0
 
@@ -84,10 +84,10 @@ all: nginx_fpp
 
 nginx_fpp nginx: nginx% : nginx_src libc2%
 	cp -R $< $@
-	cd $@ && CFLAGS='-ffp-protect $(USER_CFLAGS)' ./configure \
+	cd $@ && PATH=$(FPP_PATH) CFLAGS='-ffp-protect $(USER_CFLAGS)' ./configure \
 		$(NGINX_CONFIGURE_OPTS)
-	$(MAKE) -C $@
-	$(MAKE) -C $@ install
+	PATH=$(FPP_PATH) $(MAKE) -C $@
+	PATH=$(FPP_PATH) $(MAKE) -C $@ install
 
 $(FPP_DESTDIR)/include: linux_build
 	cp -rv $</dest/include $(FPP_DESTDIR)/
@@ -219,14 +219,22 @@ gcc%:
 			$(GCC_CONFIGURE_OPTS) \
 			$(GCC1_CONFIGURE_OPTS); \
 	else \
-		cd $@ &&../$(gcc_src)/configure \
+		cd $@ && PATH=$(FPP_PATH) ../$(gcc_src)/configure \
 			$(GCC_CONFIGURE_OPTS) \
 			$(GCC2_CONFIGURE_OPTS); \
 	fi
 
-	$(MAKE) -C $@
+	if [[ "$@" == *"1"* ]]; then \
+		$(MAKE) -C $@; \
+	else \
+		PATH=$(FPP_PATH) $(MAKE) -C $@; \
+	fi
 
-	$(MAKE) -C $@ install
+	if [[ "$@" == *"1"* ]]; then \
+		$(MAKE) -C $@ install; \
+	else \
+		PATH=$(FPP_PATH) $(MAKE) -C $@ install; \
+	fi
 
 	if [[ "$@" == *"2"* ]]; then \
 		ln -sfnv gcc $(FPP_DESTDIR)/bin/cc; \
@@ -252,21 +260,21 @@ libc%:
 
 	cd $@ && if [[ "$@" == *"1"* ]]; then \
 		echo "build-programs=no" > configparms && \
-		../$</configure \
+		PATH=$(FPP_PATH) ../$</configure \
 			$(GLIBC_CONFIGURE_OPTS) \
 			$(GLIBC1_CONFIGURE_OPTS); \
 	else \
-		../$</configure \
+		PATH=$(FPP_PATH) ../$</configure \
 			$(GLIBC_CONFIGURE_OPTS) \
 			$(GLIBC2_CONFIGURE_OPTS); \
 	fi
 
-	$(MAKE) -C $@
+	PATH=$(FPP_PAHT) $(MAKE) -C $@
 
-	$(MAKE) -C $@ install
+	PATH=$(FPP_PAHT) $(MAKE) -C $@ install
 
 	echo 'main(){}' > dummy.c
-	$(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc dummy.c
+	PATH=$(FPP_PAHT) $(FPP_TGT)-gcc dummy.c
 	readelf -l a.out | grep ": $(FPP_DESTDIR)"
 	rm -v dummy.c a.out
 

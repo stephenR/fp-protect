@@ -10,6 +10,8 @@ LFS_TGT=x86_64-lfs-linux-gnu
 LFS=$(PWD)/fpp-tmp$(DESTDIR)
 PATH:=$(DESTDIR)/bin:$(PATH)
 
+USER_CFLAGS="-pipe -ggdb -O0"
+
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
 BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))
 GMP_MIRROR=ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz
@@ -30,7 +32,7 @@ all: nginx_fpp
 
 nginx_fpp nginx: nginx% : nginx_src libc2%
 	cp -R $< $@
-	cd $@ && CFLAGS="-ffp-protect -ggdb -O3 -pipe" ./configure \
+	cd $@ && CFLAGS="-ffp-protect $(USER_CFLAGS)" ./configure \
 		--without-http_rewrite_module \
 		--without-http_gzip_module \
 		--prefix=$(DESTDIR)
@@ -121,7 +123,7 @@ binutils_build: binutils_src
 	if [ ! -d $@ ]; then \
 		mkdir $@ && \
 		cd $@ && ../binutils_src/configure \
-			CFLAGS='-pipe' \
+			CFLAGS='$(USER_CFLAGS)' \
 			--prefix=$(DESTDIR) \
 			--with-sysroot=$(LFS) \
 			--with-lib-path=$(DESTDIR)/lib \
@@ -170,7 +172,7 @@ gcc%:
 
 	if [[ "$@" == *"1"* ]]; then \
 		cd $@ && ../$(gcc_src)/configure \
-			CFLAGS='-pipe' \
+			CFLAGS='$(USER_CFLAGS)' \
 			--target=$(LFS_TGT) \
 			--prefix=$(DESTDIR) \
 			--with-sysroot=$(LFS) \
@@ -193,10 +195,9 @@ gcc%:
 			--disable-libatomic; \
 	else \
 		cd $@ && ../$(gcc_src)/configure \
-			CFLAGS='-pipe -gdwarf-2 -g3 -O0' \
-			CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' \
-			LDFLAGS='-gdwarf-2 -g3 -O0' \
-			CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" \
+			CFLAGS='$(USER_CFLAGS)' \
+			CXXFLAGS='$(USER_CFLAGS)' \
+			CFLAGS_FOR_TARGET="$(USER_CFLAGS) -ffp-protect" \
 			--prefix=$(DESTDIR) \
 			--with-local-prefix=$(LFS) \
 			--with-native-system-header-dir=$(DESTDIR)/include \
@@ -251,8 +252,7 @@ libc%:
 			libc_cv_forced_unwind=yes \
 			libc_cv_ctors_header=yes \
 			libc_cv_c_cleanup=yes \
-			CFLAGS="-pipe -O3 -ggdb -ffp-protect" \
-			LDFLAGS="-ggdb"; \
+			CFLAGS="$(USER_CFLAGS) -ffp-protect"; \
 	else \
 		../$</configure \
 			--prefix=$(DESTDIR) \
@@ -260,8 +260,7 @@ libc%:
 			--disable-profile \
 			--enable-kernel=2.6.25 \
 			--with-headers=$(DESTDIR)/include \
-			CFLAGS="-pipe -O3 -ggdb -ffp-protect" \
-			LDFLAGS="-ggdb"; \
+			CFLAGS="$(USER_CFLAGS) -ffp-protect"; \
 	fi
 
 	$(MAKE) -C $@

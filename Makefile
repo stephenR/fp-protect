@@ -12,6 +12,37 @@ PATH:=$(DESTDIR)/bin:$(PATH)
 
 USER_CFLAGS="-pipe -ggdb -O0"
 
+GCC_CONFIGURE_OPTS=CFLAGS='$(USER_CFLAGS)' \
+	--prefix=$(DESTDIR) \
+	--with-native-system-header-dir=$(DESTDIR)/include \
+	--disable-multilib \
+	--disable-libgomp \
+	--with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src \
+	--with-mpfr-lib=$$PWD/mpfr/src/.libs \
+	--enable-languages=c
+GCC1_CONFIGURE_OPTS=--target=$(LFS_TGT) \
+	--with-sysroot=$(LFS) \
+	--with-newlib \
+	--without-headers \
+	--with-local-prefix=$(DESTDIR) \
+	--disable-nls \
+	--disable-shared \
+	--disable-decimal-float \
+	--disable-threads \
+	--disable-libmudflap \
+	--disable-libssp \
+	--disable-libquadmath \
+	--disable-libatomic
+GCC2_CONFIGURE_OPTS=CXXFLAGS='$(USER_CFLAGS)' \
+	CFLAGS_FOR_TARGET="$(USER_CFLAGS) -ffp-protect" \
+	--with-local-prefix=$(LFS) \
+	--enable-clocale=gnu \
+	--enable-shared \
+	--enable-threads=posix \
+	--enable-__cxa_atexit \
+	--disable-libstdcxx-pch \
+	--disable-bootstrap
+
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
 BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))
 GMP_MIRROR=ftp://ftp.gmplib.org/pub/gmp-5.1.1/gmp-5.1.1.tar.xz
@@ -171,48 +202,14 @@ gcc%:
 	mkdir $@
 
 	if [[ "$@" == *"1"* ]]; then \
-		cd $@ && ../$(gcc_src)/configure \
-			CFLAGS='$(USER_CFLAGS)' \
-			--target=$(LFS_TGT) \
-			--prefix=$(DESTDIR) \
-			--with-sysroot=$(LFS) \
-			--with-newlib \
-			--without-headers \
-			--with-local-prefix=$(DESTDIR) \
-			--with-native-system-header-dir=$(DESTDIR)/include \
-			--disable-nls \
-			--disable-shared \
-			--disable-multilib \
-			--disable-decimal-float \
-			--disable-threads \
-			--disable-libmudflap \
-			--disable-libssp \
-			--disable-libgomp \
-			--disable-libquadmath \
-			--enable-languages=c \
-			--with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src \
-			--with-mpfr-lib=$$PWD/mpfr/src/.libs \
-			--disable-libatomic; \
+		GCC_EXTRA_OPTS=$(GCC1_CONFIGURE_OPTS);
 	else \
-		cd $@ && ../$(gcc_src)/configure \
-			CFLAGS='$(USER_CFLAGS)' \
-			CXXFLAGS='$(USER_CFLAGS)' \
-			CFLAGS_FOR_TARGET="$(USER_CFLAGS) -ffp-protect" \
-			--prefix=$(DESTDIR) \
-			--with-local-prefix=$(LFS) \
-			--with-native-system-header-dir=$(DESTDIR)/include \
-			--enable-clocale=gnu \
-			--enable-shared \
-			--enable-threads=posix \
-			--enable-__cxa_atexit \
-			--enable-languages=c \
-			--disable-libstdcxx-pch \
-			--disable-multilib \
-			--disable-bootstrap \
-			--disable-libgomp \
-			--with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src \
-			--with-mpfr-lib=$$PWD/mpfr/src/.libs; \
-	fi
+		GCC_EXTRA_OPTS=$(GCC2_CONFIGURE_OPTS);
+	fi \
+	&& cd $@ \
+	&& ../$(gcc_src)/configure \
+		$(GCC_CONFIGURE_OPTS) \
+		$$(GCC_EXTRA_OPTS)
 
 	$(MAKE) -C $@
 

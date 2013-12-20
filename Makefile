@@ -42,6 +42,9 @@ GCC2_CONFIGURE_OPTS=CXXFLAGS='$(USER_CFLAGS)' \
 	--enable-__cxa_atexit \
 	--disable-libstdcxx-pch \
 	--disable-bootstrap
+NGINX_CONFIGURE_OPTS=--without-http_rewrite_module \
+	--without-http_gzip_module \
+	--prefix=$(DESTDIR)
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
 BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))
@@ -64,9 +67,7 @@ all: nginx_fpp
 nginx_fpp nginx: nginx% : nginx_src libc2%
 	cp -R $< $@
 	cd $@ && CFLAGS='-ffp-protect $(USER_CFLAGS)' ./configure \
-		--without-http_rewrite_module \
-		--without-http_gzip_module \
-		--prefix=$(DESTDIR)
+		$(NGINX_CONFIGURE_OPTS)
 	$(MAKE) -C $@
 	$(MAKE) -C $@ install
 

@@ -6,7 +6,8 @@ SHELL = /bin/bash
 #TODO remove fpp/nonfpp build targets
 # -> use a variable instead so it can be called like FPP="no" make
 DESTDIR=$(PWD)/install
-TARGET=x86_64-fpp-linux-gnu
+LFS_TGT=x86_64-lfs-linux-gnu
+LFS=$(PWD)/fpp-tmp$(DESTDIR)
 PATH:=$(DESTDIR)/bin:$(PATH)
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
@@ -52,7 +53,7 @@ nginx_src: $(NGINX_ARCHIVE)
 	tar -xf $<
 	mv $(basename $(basename $<)) $@
 
-gcc1 gcc1_fpp: $(DESTDIR)/bin/$(TARGET)-ld
+gcc1 gcc1_fpp: $(DESTDIR)/bin/$(LFS_TGT)-ld
 gcc1 gcc2: gcc_src/gmp gcc_src/mpc gcc_src/mpfr
 gcc1_fpp gcc2_fpp: gcc_src_fpp/gmp gcc_src_fpp/mpc gcc_src_fpp/mpfr
 gcc2 gcc2_fpp: gcc2% : libc1%
@@ -94,9 +95,12 @@ binutils_src: $(BINUTILS_ARCHIVE)
 	tar -xf $(BINUTILS_ARCHIVE)
 	mv $(basename $(basename $(BINUTILS_ARCHIVE))) $@
 
+$(DESTDIR): $(LFS)
+	ln -sfnv $(LFS) $(DESTDIR)
+
 $(DESTDIR)/lib: $(DESTDIR)
 
-$(DESTDIR) $(DESTDIR)/lib:
+$(LFS) $(DESTDIR)/lib:
 	if [ ! -d $@ ]; then \
 		mkdir -p $@; \
 	fi
@@ -104,13 +108,13 @@ $(DESTDIR) $(DESTDIR)/lib:
 $(DESTDIR)/lib64: $(DESTDIR) $(DESTDIR)/lib
 	ln -sfnv lib $(DESTDIR)/lib64
 
-$(DESTDIR)/bin/$(TARGET)-ld: binutils_build $(DESTDIR)/lib64
+$(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)/lib64
 	$(MAKE) -C binutils_build install
 
 binutils_build: binutils_src
 	if [ ! -d $@ ]; then \
 		mkdir $@ && \
-		cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-lib-path=$(DESTDIR)/lib --target=$(TARGET) --disable-nls --disable-werror; \
+		cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror; \
 	fi
 	$(MAKE) -C $@
 
@@ -143,7 +147,7 @@ gcc%:
 	if [[ "$@" == *"1"* ]]; then \
 		cd $(gcc_src) && sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure; \
 	else \
-		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(TARGET)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
+		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(LFS_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
 	fi
 
 	if [ -d $@ ]; then \
@@ -152,9 +156,9 @@ gcc%:
 	mkdir $@
 
 	if [[ "$@" == *"1"* ]]; then \
-		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe' --target=$(TARGET) --prefix=$(DESTDIR) --with-newlib --without-headers --with-local-prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs --disable-libatomic; \
+		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe' --target=$(LFS_TGT) --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-newlib --without-headers --with-local-prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs --disable-libatomic; \
 	else \
-		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" --prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs; \
+		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" --prefix=$(DESTDIR) --with-local-prefix=$(LFS) --with-native-system-header-dir=$(DESTDIR)/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs; \
 	fi
 
 	$(MAKE) -C $@
@@ -165,7 +169,7 @@ gcc%:
 		ln -sfnv gcc $(DESTDIR)/bin/cc; \
 	fi
 
-	ln -sfnv libgcc.a `$(TARGET)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
+	ln -sfnv libgcc.a `$(LFS_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
 libc_src libc_src_fpp:
 	if [[ "$@" == *"fpp"* ]]; then \
@@ -185,7 +189,7 @@ libc%:
 
 	cd $@ && if [[ "$@" == *"1"* ]]; then \
 		echo "build-programs=no" > configparms && \
-		../$</configure --prefix=$(DESTDIR) --host=$(TARGET) --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$(DESTDIR)/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-pipe -O3 -ggdb -ffp-protect" LDFLAGS="-ggdb"; \
+		../$</configure --prefix=$(DESTDIR) --host=$(LFS_TGT) --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$(DESTDIR)/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-pipe -O3 -ggdb -ffp-protect" LDFLAGS="-ggdb"; \
 	else \
 		../$</configure --prefix=$(DESTDIR) --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$(DESTDIR)/include CFLAGS="-pipe -O3 -ggdb -ffp-protect" LDFLAGS="-ggdb"; \
 	fi
@@ -195,7 +199,7 @@ libc%:
 	$(MAKE) -C $@ install
 
 	echo 'main(){}' > dummy.c
-	$(DESTDIR)/bin/$(TARGET)-gcc dummy.c
+	$(DESTDIR)/bin/$(LFS_TGT)-gcc dummy.c
 	readelf -l a.out | grep ": $(DESTDIR)"
 	rm -v dummy.c a.out
 

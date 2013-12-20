@@ -45,6 +45,13 @@ GCC2_CONFIGURE_OPTS=CXXFLAGS='$(USER_CFLAGS)' \
 NGINX_CONFIGURE_OPTS=--without-http_rewrite_module \
 	--without-http_gzip_module \
 	--prefix=$(DESTDIR)
+BINUTILS_CONFIGURE_OPTS=CFLAGS='$(USER_CFLAGS)' \
+	--prefix=$(DESTDIR) \
+	--with-sysroot=$(LFS) \
+	--with-lib-path=$(DESTDIR)/lib \
+	--target=$(LFS_TGT) \
+	--disable-nls \
+	--disable-werror
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
 BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))
@@ -155,13 +162,7 @@ binutils_build: binutils_src
 	if [ ! -d $@ ]; then \
 		mkdir $@ && \
 		cd $@ && ../binutils_src/configure \
-			CFLAGS='$(USER_CFLAGS)' \
-			--prefix=$(DESTDIR) \
-			--with-sysroot=$(LFS) \
-			--with-lib-path=$(DESTDIR)/lib \
-			--target=$(LFS_TGT) \
-			--disable-nls \
-			--disable-werror; \
+			$(BINUTILS_CONFIGURE_OPTS); \
 	fi
 	$(MAKE) -C $@
 

@@ -30,7 +30,10 @@ all: nginx_fpp
 
 nginx_fpp nginx: nginx% : nginx_src libc2%
 	cp -R $< $@
-	cd $@ && CFLAGS="-ffp-protect -ggdb -O3 -pipe" ./configure --without-http_rewrite_module --without-http_gzip_module --prefix=$(DESTDIR)
+	cd $@ && CFLAGS="-ffp-protect -ggdb -O3 -pipe" ./configure \
+		--without-http_rewrite_module \
+		--without-http_gzip_module \
+		--prefix=$(DESTDIR)
 	$(MAKE) -C $@
 	$(MAKE) -C $@ install
 
@@ -117,7 +120,14 @@ $(DESTDIR)/bin/$(LFS_TGT)-ld: binutils_build $(DESTDIR)/lib64
 binutils_build: binutils_src
 	if [ ! -d $@ ]; then \
 		mkdir $@ && \
-		cd $@ && ../binutils_src/configure CFLAGS='-pipe' --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-lib-path=$(DESTDIR)/lib --target=$(LFS_TGT) --disable-nls --disable-werror; \
+		cd $@ && ../binutils_src/configure \
+			CFLAGS='-pipe' \
+			--prefix=$(DESTDIR) \
+			--with-sysroot=$(LFS) \
+			--with-lib-path=$(DESTDIR)/lib \
+			--target=$(LFS_TGT) \
+			--disable-nls \
+			--disable-werror; \
 	fi
 	$(MAKE) -C $@
 
@@ -159,9 +169,48 @@ gcc%:
 	mkdir $@
 
 	if [[ "$@" == *"1"* ]]; then \
-		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe' --target=$(LFS_TGT) --prefix=$(DESTDIR) --with-sysroot=$(LFS) --with-newlib --without-headers --with-local-prefix=$(DESTDIR) --with-native-system-header-dir=$(DESTDIR)/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libmudflap --disable-libssp --disable-libgomp --disable-libquadmath --enable-languages=c --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs --disable-libatomic; \
+		cd $@ && ../$(gcc_src)/configure \
+			CFLAGS='-pipe' \
+			--target=$(LFS_TGT) \
+			--prefix=$(DESTDIR) \
+			--with-sysroot=$(LFS) \
+			--with-newlib \
+			--without-headers \
+			--with-local-prefix=$(DESTDIR) \
+			--with-native-system-header-dir=$(DESTDIR)/include \
+			--disable-nls \
+			--disable-shared \
+			--disable-multilib \
+			--disable-decimal-float \
+			--disable-threads \
+			--disable-libmudflap \
+			--disable-libssp \
+			--disable-libgomp \
+			--disable-libquadmath \
+			--enable-languages=c \
+			--with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src \
+			--with-mpfr-lib=$$PWD/mpfr/src/.libs \
+			--disable-libatomic; \
 	else \
-		cd $@ && ../$(gcc_src)/configure CFLAGS='-pipe -gdwarf-2 -g3 -O0' CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' LDFLAGS='-gdwarf-2 -g3 -O0' CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" --prefix=$(DESTDIR) --with-local-prefix=$(LFS) --with-native-system-header-dir=$(DESTDIR)/include --enable-clocale=gnu --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-languages=c --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src --with-mpfr-lib=$$PWD/mpfr/src/.libs; \
+		cd $@ && ../$(gcc_src)/configure \
+			CFLAGS='-pipe -gdwarf-2 -g3 -O0' \
+			CXXFLAGS='-pipe -gdwarf-2 -g3 -O0' \
+			LDFLAGS='-gdwarf-2 -g3 -O0' \
+			CFLAGS_FOR_TARGET="-pipe -gdwarf-2 -g3 -O3 -ffp-protect" \
+			--prefix=$(DESTDIR) \
+			--with-local-prefix=$(LFS) \
+			--with-native-system-header-dir=$(DESTDIR)/include \
+			--enable-clocale=gnu \
+			--enable-shared \
+			--enable-threads=posix \
+			--enable-__cxa_atexit \
+			--enable-languages=c \
+			--disable-libstdcxx-pch \
+			--disable-multilib \
+			--disable-bootstrap \
+			--disable-libgomp \
+			--with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src \
+			--with-mpfr-lib=$$PWD/mpfr/src/.libs; \
 	fi
 
 	$(MAKE) -C $@
@@ -192,9 +241,27 @@ libc%:
 
 	cd $@ && if [[ "$@" == *"1"* ]]; then \
 		echo "build-programs=no" > configparms && \
-		../$</configure --prefix=$(DESTDIR) --host=$(LFS_TGT) --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$(DESTDIR)/include libc_cv_forced_unwind=yes libc_cv_ctors_header=yes libc_cv_c_cleanup=yes CFLAGS="-pipe -O3 -ggdb -ffp-protect" LDFLAGS="-ggdb"; \
+		../$</configure \
+			--prefix=$(DESTDIR) \
+			--host=$(LFS_TGT) \
+			--build=x86_64-unknown-linux-gnu \
+			--disable-profile \
+			--enable-kernel=2.6.25 \
+			--with-headers=$(DESTDIR)/include \
+			libc_cv_forced_unwind=yes \
+			libc_cv_ctors_header=yes \
+			libc_cv_c_cleanup=yes \
+			CFLAGS="-pipe -O3 -ggdb -ffp-protect" \
+			LDFLAGS="-ggdb"; \
 	else \
-		../$</configure --prefix=$(DESTDIR) --build=x86_64-unknown-linux-gnu --disable-profile --enable-kernel=2.6.25 --with-headers=$(DESTDIR)/include CFLAGS="-pipe -O3 -ggdb -ffp-protect" LDFLAGS="-ggdb"; \
+		../$</configure \
+			--prefix=$(DESTDIR) \
+			--build=x86_64-unknown-linux-gnu \
+			--disable-profile \
+			--enable-kernel=2.6.25 \
+			--with-headers=$(DESTDIR)/include \
+			CFLAGS="-pipe -O3 -ggdb -ffp-protect" \
+			LDFLAGS="-ggdb"; \
 	fi
 
 	$(MAKE) -C $@

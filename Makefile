@@ -10,7 +10,7 @@ LFS_TGT=x86_64-lfs-linux-gnu
 LFS=$(PWD)/fpp-tmp$(DESTDIR)
 PATH:=$(DESTDIR)/bin:$(PATH)
 
-USER_CFLAGS="-pipe -ggdb -O0"
+USER_CFLAGS=-pipe -ggdb -O0
 
 GCC_CONFIGURE_OPTS=CFLAGS='$(USER_CFLAGS)' \
 	--prefix=$(DESTDIR) \
@@ -34,7 +34,7 @@ GCC1_CONFIGURE_OPTS=--target=$(LFS_TGT) \
 	--disable-libquadmath \
 	--disable-libatomic
 GCC2_CONFIGURE_OPTS=CXXFLAGS='$(USER_CFLAGS)' \
-	CFLAGS_FOR_TARGET="$(USER_CFLAGS) -ffp-protect" \
+	CFLAGS_FOR_TARGET='$(USER_CFLAGS) -ffp-protect' \
 	--with-local-prefix=$(LFS) \
 	--enable-clocale=gnu \
 	--enable-shared \
@@ -63,7 +63,7 @@ all: nginx_fpp
 
 nginx_fpp nginx: nginx% : nginx_src libc2%
 	cp -R $< $@
-	cd $@ && CFLAGS="-ffp-protect $(USER_CFLAGS)" ./configure \
+	cd $@ && CFLAGS='-ffp-protect $(USER_CFLAGS)' ./configure \
 		--without-http_rewrite_module \
 		--without-http_gzip_module \
 		--prefix=$(DESTDIR)
@@ -202,14 +202,14 @@ gcc%:
 	mkdir $@
 
 	if [[ "$@" == *"1"* ]]; then \
-		GCC_EXTRA_OPTS=$(GCC1_CONFIGURE_OPTS);
+		cd $@ && ../$(gcc_src)/configure \
+			$(GCC_CONFIGURE_OPTS) \
+			$(GCC1_CONFIGURE_OPTS); \
 	else \
-		GCC_EXTRA_OPTS=$(GCC2_CONFIGURE_OPTS);
-	fi \
-	&& cd $@ \
-	&& ../$(gcc_src)/configure \
-		$(GCC_CONFIGURE_OPTS) \
-		$$(GCC_EXTRA_OPTS)
+		cd $@ &&../$(gcc_src)/configure \
+			$(GCC_CONFIGURE_OPTS) \
+			$(GCC2_CONFIGURE_OPTS); \
+	fi
 
 	$(MAKE) -C $@
 
@@ -249,7 +249,7 @@ libc%:
 			libc_cv_forced_unwind=yes \
 			libc_cv_ctors_header=yes \
 			libc_cv_c_cleanup=yes \
-			CFLAGS="$(USER_CFLAGS) -ffp-protect"; \
+			CFLAGS='$(patsubst -O0,-O1,$(USER_CFLAGS)) -ffp-protect'; \
 	else \
 		../$</configure \
 			--prefix=$(DESTDIR) \
@@ -257,7 +257,7 @@ libc%:
 			--disable-profile \
 			--enable-kernel=2.6.25 \
 			--with-headers=$(DESTDIR)/include \
-			CFLAGS="$(USER_CFLAGS) -ffp-protect"; \
+			CFLAGS='$(patsubst -O0,-O1,$(USER_CFLAGS)) -ffp-protect'; \
 	fi
 
 	$(MAKE) -C $@

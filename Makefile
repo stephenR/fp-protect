@@ -52,6 +52,17 @@ BINUTILS_CONFIGURE_OPTS=CFLAGS='$(USER_CFLAGS)' \
 	--target=$(LFS_TGT) \
 	--disable-nls \
 	--disable-werror
+GLIBC_CONFIGURE_OPTS=--prefix=$(DESTDIR) \
+	--with-headers=$(DESTDIR)/include \
+	--disable-profile \
+	--enable-kernel=2.6.25 \
+	CFLAGS='$(patsubst -O0,-O1,$(USER_CFLAGS)) -ffp-protect'
+GLIBC1_CONFIGURE_OPTS=--host=$(LFS_TGT) \
+	--build=x86_64-unknown-linux-gnu \
+	libc_cv_forced_unwind=yes \
+	libc_cv_ctors_header=yes \
+	libc_cv_c_cleanup=yes
+GLIBC2_CONFIGURE_OPTS=--build=x86_64-unknown-linux-gnu
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
 BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))
@@ -242,24 +253,12 @@ libc%:
 	cd $@ && if [[ "$@" == *"1"* ]]; then \
 		echo "build-programs=no" > configparms && \
 		../$</configure \
-			--prefix=$(DESTDIR) \
-			--host=$(LFS_TGT) \
-			--build=x86_64-unknown-linux-gnu \
-			--disable-profile \
-			--enable-kernel=2.6.25 \
-			--with-headers=$(DESTDIR)/include \
-			libc_cv_forced_unwind=yes \
-			libc_cv_ctors_header=yes \
-			libc_cv_c_cleanup=yes \
-			CFLAGS='$(patsubst -O0,-O1,$(USER_CFLAGS)) -ffp-protect'; \
+			$(GLIBC_CONFIGURE_OPTS) \
+			$(GLIBC1_CONFIGURE_OPTS); \
 	else \
 		../$</configure \
-			--prefix=$(DESTDIR) \
-			--build=x86_64-unknown-linux-gnu \
-			--disable-profile \
-			--enable-kernel=2.6.25 \
-			--with-headers=$(DESTDIR)/include \
-			CFLAGS='$(patsubst -O0,-O1,$(USER_CFLAGS)) -ffp-protect'; \
+			$(GLIBC_CONFIGURE_OPTS) \
+			$(GLIBC2_CONFIGURE_OPTS); \
 	fi
 
 	$(MAKE) -C $@

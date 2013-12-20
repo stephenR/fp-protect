@@ -269,12 +269,12 @@ libc%:
 			$(GLIBC2_CONFIGURE_OPTS); \
 	fi
 
-	PATH=$(FPP_PAHT) $(MAKE) -C $@
+	PATH=$(FPP_PATH) $(MAKE) -C $@
 
-	PATH=$(FPP_PAHT) $(MAKE) -C $@ install
+	PATH=$(FPP_PATH) $(MAKE) -C $@ install
 
 	echo 'main(){}' > dummy.c
-	PATH=$(FPP_PAHT) $(FPP_TGT)-gcc dummy.c
+	PATH=$(FPP_PATH) $(FPP_TGT)-gcc dummy.c
 	readelf -l a.out | grep ": $(FPP_DESTDIR)"
 	rm -v dummy.c a.out
 

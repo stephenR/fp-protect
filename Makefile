@@ -210,7 +210,7 @@ gcc%:
 	fi
 
 	if [ -d $@ ]; then \
-		rm -R $@; \
+		rm -Rf $@; \
 	fi
 	mkdir $@
 
@@ -254,7 +254,7 @@ libc_src libc_src_fpp:
 
 libc%:
 	if [ -d $@ ]; then \
-		rm -R $@; \
+		rm -Rf $@; \
 	fi
 	mkdir $@
 

@@ -206,7 +206,7 @@ gcc%:
 	if [[ "$@" == *"1"* ]]; then \
 		cd $(gcc_src) && sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure; \
 	else \
-		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(FPP_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
+		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
 	fi
 
 	if [ -d $@ ]; then \
@@ -240,7 +240,7 @@ gcc%:
 		ln -sfnv gcc $(FPP_DESTDIR)/bin/cc; \
 	fi
 
-	ln -sfnv libgcc.a `$(FPP_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
+	ln -sfnv libgcc.a `$(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
 libc_src libc_src_fpp:
 	if [[ "$@" == *"fpp"* ]]; then \
@@ -274,7 +274,7 @@ libc%:
 	PATH=$(FPP_PATH) $(MAKE) -C $@ install
 
 	echo 'main(){}' > dummy.c
-	PATH=$(FPP_PATH) $(FPP_TGT)-gcc dummy.c
+	$(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc dummy.c
 	readelf -l a.out | grep ": $(FPP_DESTDIR)"
 	rm -v dummy.c a.out
 

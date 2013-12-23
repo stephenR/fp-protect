@@ -17,8 +17,12 @@ GCC_CONFIGURE_OPTS=CFLAGS='$(USER_CFLAGS)' \
 	--with-native-system-header-dir=$(FPP_DESTDIR)/include \
 	--disable-multilib \
 	--disable-libgomp \
-	--with-mpfr-include=$$PWD/../$(gcc_src)/mpfr/src \
-	--with-mpfr-lib=$$PWD/mpfr/src/.libs \
+	--with-mpfr-include=$$PWD/../mpfr_src/src \
+	--with-mpfr-lib=$$PWD/../mpfr_build/src/.libs \
+	--with-mpc-include=$$PWD/../mpc_src/src \
+	--with-mpc-lib=$$PWD/../mpc_build/src/.libs \
+	--with-gmp-include=$$PWD/../gmp_build \
+	--with-gmp-lib=$$PWD/../gmp_build/.libs \
 	--enable-languages=c
 GCC1_CONFIGURE_OPTS=--target=$(FPP_TGT) \
 	--with-sysroot=$(FPP_SYSROOT) \
@@ -63,6 +67,13 @@ GLIBC1_CONFIGURE_OPTS=--host=$(FPP_TGT) \
 	libc_cv_ctors_header=yes \
 	libc_cv_c_cleanup=yes
 GLIBC2_CONFIGURE_OPTS=--build=x86_64-unknown-linux-gnu
+MPC_CONFIGURE_OPTS=--disable-shared \
+	--with-mpfr-include=$$PWD/../mpfr_src/src \
+	--with-mpfr-lib=$$PWD/../mpfr_build/src/.libs \
+	--with-gmp-include=$$PWD/../gmp_build \
+	--with-gmp-lib=$$PWD/../gmp_build/.libs
+MPFR_CONFIGURE_OPTS=--with-gmp-include=$$PWD/../gmp_build/ \
+	--with-gmp-lib=$$PWD/../gmp_build/.libs
 
 BINUTILS_MIRROR=ftp://sourceware.org/pub/binutils/snapshots/binutils-2.23.52.tar.bz2
 BINUTILS_ARCHIVE=$(notdir $(BINUTILS_MIRROR))
@@ -109,19 +120,20 @@ nginx_src: $(NGINX_ARCHIVE)
 	mv $(basename $(basename $<)) $@
 
 gcc1 gcc1_fpp: $(FPP_DESTDIR)/bin/$(FPP_TGT)-ld
-gcc1 gcc2: gcc_src/gmp gcc_src/mpc gcc_src/mpfr
-gcc1_fpp gcc2_fpp: gcc_src_fpp/gmp gcc_src_fpp/mpc gcc_src_fpp/mpfr
+gcc1 gcc2 gcc1_fpp gcc2_fpp: gmp_build mpc_build mpfr_build 
+gmp_build mpc_build mpfr_build: %_build : %_src
+gcc1 gcc1_fpp: gcc1% : gcc_src%
+gcc2 gcc2_fpp: gcc2% : gcc_src%
+mpc_build: gmp_build mpfr_build
+mpfr_build: gmp_build
 gcc2 gcc2_fpp: gcc2% : libc1%
 libc1 libc2: libc_src gcc
 libc1_fpp libc2_fpp: libc_src_fpp
 libc1 libc1_fpp libc2 libc2_fpp: libc%: gcc% $(FPP_DESTDIR)/include
 
-gcc_src/gmp: $(GMP_ARCHIVE) gcc_src
-gcc_src/mpc: $(MPC_ARCHIVE) gcc_src
-gcc_src/mpfr: $(MPFR_ARCHIVE) gcc_src
-gcc_src_fpp/gmp: $(GMP_ARCHIVE) gcc_src_fpp
-gcc_src_fpp/mpc: $(MPC_ARCHIVE) gcc_src_fpp
-gcc_src_fpp/mpfr: $(MPFR_ARCHIVE) gcc_src_fpp
+gmp_src: $(GMP_ARCHIVE)
+mpc_src: $(MPC_ARCHIVE)
+mpfr_src: $(MPFR_ARCHIVE)
 
 $(LINUX_ARCHIVE):
 	wget -c $(LINUX_MIRROR)
@@ -135,10 +147,9 @@ $(BINUTILS_ARCHIVE):
 $(GMP_ARCHIVE):
 	wget -c $(GMP_MIRROR)
 
-gcc_src/gmp gcc_src/mpc gcc_src/mpfr gcc_src_fpp/gmp gcc_src_fpp/mpc gcc_src_fpp/mpfr:
+gmp_src mpc_src mpfr_src:
 	tar -xf $<
 	mv $(basename $(basename $<)) $@
-
 
 $(MPC_ARCHIVE):
 	wget -c $(MPC_MIRROR)
@@ -278,6 +289,29 @@ libc%:
 	readelf -l a.out | grep ": $(FPP_DESTDIR)"
 	rm -v dummy.c a.out
 
+gmp_build:
+	if [ ! -d $@ ]; then \
+		mkdir $@ && \
+		cd $@ && ../$*_src/configure; \
+	fi
+	$(MAKE) -C $@
+
+mpc_build:
+	if [ ! -d $@ ]; then \
+		mkdir $@ && \
+		cd $@ && ../$*_src/configure \
+			 $(MPC_CONFIGURE_OPTS); \
+	fi
+	$(MAKE) -C $@
+
+mpfr_build:
+	if [ ! -d $@ ]; then \
+		mkdir $@ && \
+		cd $@ && ../$*_src/configure \
+			 $(MPFR_CONFIGURE_OPTS); \
+	fi
+	$(MAKE) -C $@
+
 .PHONY: clean
 clean: clean-archives clean-build clean-src
 
@@ -294,6 +328,9 @@ clean-build:
 	- rm -Rf libc1 libc2
 	- rm -Rf linux_build
 	- rm -Rf nginx_fpp nginx
+	- rm -Rf gmp_build
+	- rm -Rf mpfr_build
+	- rm -Rf mpc_build
 
 .PHONY: clean-src
 clean-src:
@@ -304,4 +341,7 @@ clean-src:
 	- rm -Rf libc_src
 	- rm -Rf linux_src
 	- rm -Rf nginx_src
+	- rm -Rf gmp_src
+	- rm -Rf mpfr_src
+	- rm -Rf mpc_src
 

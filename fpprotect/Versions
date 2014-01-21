@@ -1,0 +1,8 @@
+libc {
+  GLIBC_2.0 {
+    __dl_fpp_region_list;
+    __dl_fpp_defer_list;
+    __dl_fpp_mutex_lock;
+    __dl_fpp_mutex_unlock;
+  }
+}

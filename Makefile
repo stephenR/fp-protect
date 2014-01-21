@@ -3,7 +3,6 @@ SHELL = /bin/bash
 #TODO PHONY
 #TODO temporary folder for gcc1
 #TODO programs needed? (libc2)
-#TODO remove fpp/nonfpp build targets
 # -> use a variable instead so it can be called like FPP="no" make
 FPP_DESTDIR=$(PWD)/install
 FPP_TGT=x86_64-lfs-linux-gnu
@@ -91,9 +90,9 @@ GCC_ARCHIVES=$(GMP_ARCHIVE) $(MPC_ARCHIVE) $(MPFR_ARCHIVE)
 ALL_ARCHIVES=$(BINUTILS_ARCHIVE) $(GCC_ARCHIVES) $(LINUX_ARCHIVE) $(NGINX_ARCHIVE)
 
 .PHONY: all
-all: nginx_fpp
+all: nginx
 
-nginx_fpp nginx: nginx% : nginx_src libc2%
+nginx: nginx_src libc2
 	cp -R $< $@
 	cd $@ && PATH=$(FPP_PATH) CFLAGS='-ffp-protect $(USER_CFLAGS)' ./configure \
 		$(NGINX_CONFIGURE_OPTS)
@@ -119,17 +118,15 @@ nginx_src: $(NGINX_ARCHIVE)
 	tar -xf $<
 	mv $(basename $(basename $<)) $@
 
-gcc1 gcc1_fpp: $(FPP_DESTDIR)/bin/$(FPP_TGT)-ld
-gcc1 gcc2 gcc1_fpp gcc2_fpp: gmp_build mpc_build mpfr_build 
+gcc1: $(FPP_DESTDIR)/bin/$(FPP_TGT)-ld
+gcc1 gcc2: gmp_build mpc_build mpfr_build 
 gmp_build mpc_build mpfr_build: %_build : %_src
-gcc1 gcc1_fpp: gcc1% : gcc_src%
-gcc2 gcc2_fpp: gcc2% : gcc_src%
+gcc1 gcc2: gcc_src
 mpc_build: gmp_build mpfr_build
 mpfr_build: gmp_build
-gcc2 gcc2_fpp: gcc2% : libc1%
+gcc2: libc1
 libc1 libc2: libc_src gcc
-libc1_fpp libc2_fpp: libc_src_fpp
-libc1 libc1_fpp libc2 libc2_fpp: libc%: gcc% $(FPP_DESTDIR)/include
+libc1 libc2: libc%: gcc% $(FPP_DESTDIR)/include
 
 gmp_src: $(GMP_ARCHIVE)
 mpc_src: $(MPC_ARCHIVE)
@@ -188,20 +185,12 @@ binutils_build: binutils_src
 	fi
 	$(MAKE) -C $@
 
-define gcc_src
-gcc_src$(findstring _fpp,$@)
-endef
-
-gcc_src gcc_src_fpp:
+gcc_src:
 	if [ -d $@ ]; then \
 		cd $@ && git clean -fdx && git reset --hard && git pull; \
 	else \
 		git clone git://zero-entropy.de/gcc.git $@ && \
-		if [[ "$@" == *"fpp"* ]]; then \
-			cd $@ && git checkout -b fpprotect origin/fpprotect_gimple; \
-		else \
-			cd $@ && git checkout 31d89c5; \
-		fi; \
+		cd $@ && git checkout -b fpprotect origin/fpprotect_gimple; \
 	fi
 	cd $@ && for file in $$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
 		cp -uv $$file{,.orig}; \
@@ -212,12 +201,12 @@ gcc_src gcc_src_fpp:
 	done
 
 gcc%:
-	cd $(gcc_src) && git checkout -- gcc/configure
-	cd $(gcc_src) && sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
+	cd gcc_src && git checkout -- gcc/configure
+	cd gcc_src && sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
 	if [[ "$@" == *"1"* ]]; then \
-		cd $(gcc_src) && sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure; \
+		cd gcc_src && sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure; \
 	else \
-		cd $(gcc_src) && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
+		cd gcc_src && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
 	fi
 
 	if [ -d $@ ]; then \
@@ -226,11 +215,11 @@ gcc%:
 	mkdir $@
 
 	if [[ "$@" == *"1"* ]]; then \
-		cd $@ && ../$(gcc_src)/configure \
+		cd $@ && ../gcc_src/configure \
 			$(GCC_CONFIGURE_OPTS) \
 			$(GCC1_CONFIGURE_OPTS); \
 	else \
-		cd $@ && PATH=$(FPP_PATH) ../$(gcc_src)/configure \
+		cd $@ && PATH=$(FPP_PATH) ../gcc_src/configure \
 			$(GCC_CONFIGURE_OPTS) \
 			$(GCC2_CONFIGURE_OPTS); \
 	fi
@@ -253,14 +242,9 @@ gcc%:
 
 	ln -sfnv libgcc.a `$(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
-libc_src libc_src_fpp:
-	if [[ "$@" == *"fpp"* ]]; then \
-		git clone git://zero-entropy.de/glibc.git $@ && \
-		cd $@ && git checkout -b fpp origin/fpp; \
-	else \
-		git clone git://sourceware.org/git/glibc.git $@ && \
-		cd $@ && git checkout 043c748; \
-	fi
+libc_src:
+	git clone git://zero-entropy.de/glibc.git $@
+	cd $@ && git checkout -b fpp origin/fpp
 	cd $@ && patch -p1 < ../gcc_hsep_vsep.patch
 
 libc%:
@@ -322,12 +306,10 @@ clean-archives:
 .PHONY: clean-build
 clean-build:
 	- rm -Rf binutils_build
-	- rm -Rf gcc1_fpp gcc2_fpp
 	- rm -Rf gcc1 gcc2
-	- rm -Rf libc1_fpp libc2_fpp
 	- rm -Rf libc1 libc2
 	- rm -Rf linux_build
-	- rm -Rf nginx_fpp nginx
+	- rm -Rf nginx
 	- rm -Rf gmp_build
 	- rm -Rf mpfr_build
 	- rm -Rf mpc_build
@@ -335,9 +317,7 @@ clean-build:
 .PHONY: clean-src
 clean-src:
 	- rm -Rf binutils_src
-	- rm -Rf gcc_src_fpp
 	- rm -Rf gcc_src
-	- rm -Rf libc_src_fpp
 	- rm -Rf libc_src
 	- rm -Rf linux_src
 	- rm -Rf nginx_src

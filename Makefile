@@ -1,4 +1,4 @@
-SHELL = /bin/bash
+SHELL = /bin/sh
 
 #TODO PHONY
 #TODO temporary folder for gcc1
@@ -201,7 +201,7 @@ gcc_src: gcc
 gcc%:
 	cd gcc_src && git checkout -- gcc/configure
 	cd gcc_src && sed -i 's/BUILD_INFO=info/BUILD_INFO=/' gcc/configure
-	if [[ "$@" == *"1"* ]]; then \
+	if [ "$@" == "1" ]; then \
 		cd gcc_src && sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' gcc/configure; \
 	else \
 		cd gcc_src && cat gcc/limitx.h gcc/glimits.h gcc/limity.h > `dirname $$($(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc -print-libgcc-file-name)`/include-fixed/limits.h; \
@@ -212,7 +212,7 @@ gcc%:
 	fi
 	mkdir $@
 
-	if [[ "$@" == *"1"* ]]; then \
+	if [ "$@" == "1" ]; then \
 		cd $@ && ../gcc_src/configure \
 			$(GCC_CONFIGURE_OPTS) \
 			$(GCC1_CONFIGURE_OPTS); \
@@ -222,19 +222,19 @@ gcc%:
 			$(GCC2_CONFIGURE_OPTS); \
 	fi
 
-	if [[ "$@" == *"1"* ]]; then \
+	if [ "$@" == "1" ]; then \
 		$(MAKE) -C $@; \
 	else \
 		PATH=$(FPP_PATH) $(MAKE) -C $@; \
 	fi
 
-	if [[ "$@" == *"1"* ]]; then \
+	if [ "$@" == "1" ]; then \
 		$(MAKE) -C $@ install; \
 	else \
 		PATH=$(FPP_PATH) $(MAKE) -C $@ install; \
 	fi
 
-	if [[ "$@" == *"2"* ]]; then \
+	if [ "$@" == "2" ]; then \
 		ln -sfnv gcc $(FPP_DESTDIR)/bin/cc; \
 	fi
 
@@ -253,7 +253,7 @@ libc%:
 	fi
 	mkdir $@
 
-	cd $@ && if [[ "$@" == *"1"* ]]; then \
+	cd $@ && if [ "$@" == "1" ]; then \
 		echo "build-programs=no" > configparms && \
 		PATH=$(FPP_PATH) ../$</configure \
 			$(GLIBC_CONFIGURE_OPTS) \

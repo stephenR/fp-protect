@@ -185,13 +185,11 @@ binutils_build: binutils_src
 	fi
 	$(MAKE) -C $@
 
-gcc_src:
+gcc_src: gcc
 	if [ -d $@ ]; then \
-		cd $@ && git clean -fdx && git reset --hard && git pull; \
-	else \
-		git clone git://zero-entropy.de/gcc.git $@ && \
-		cd $@ && git checkout -b fpprotect origin/fpprotect_gimple; \
+		rm -R gcc_src; \
 	fi
+	cp -R gcc $@
 	cd $@ && for file in $$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h); do \
 		cp -uv $$file{,.orig}; \
 		sed -e "s@/lib\(64\)\?\(32\)\?/ld@$(FPP_DESTDIR)&@g" \
@@ -242,9 +240,11 @@ gcc%:
 
 	ln -sfnv libgcc.a `$(FPP_DESTDIR)/bin/$(FPP_TGT)-gcc -print-libgcc-file-name | sed 's/libgcc/&_eh/'`
 
-libc_src:
-	git clone git://zero-entropy.de/glibc.git $@
-	cd $@ && git checkout -b fpp origin/fpp
+libc_src: glibc
+	if [ -d $@ ]; then \
+		rm -R $@; \
+	fi
+	cp -R glibc $@
 	cd $@ && patch -p1 < ../gcc_hsep_vsep.patch
 
 libc%:
